@@ -1,0 +1,1200 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Gifts Monitor</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root { --bg:#000; --card:#0f0f12; --card2:#16161b; --line:#1d1d23; --text:#f2f2f3; --mute:#8a8a90;
+    --acc:#ff2fb9; --acc2:#c026d3; --up:#2ecc71; --down:#ff5a5f; --spring:cubic-bezier(.34,1.56,.64,1); }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text);
+    font:15px/1.4 -apple-system,"Segoe UI",Roboto,sans-serif; -webkit-font-smoothing:antialiased; }
+  #app { max-width:430px; margin:0 auto; height:100%; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  #app::before { content:""; position:absolute; inset:0 0 auto 0; height:260px; pointer-events:none; z-index:0;
+    background:radial-gradient(120% 100% at 50% -20%, rgba(255,47,185,.18), transparent 70%); }
+  main { flex:1; overflow-y:auto; padding:14px 16px 24px; position:relative; z-index:1; }
+  main::-webkit-scrollbar { width:0; }
+  h1 { font-size:24px; margin:4px 0 14px; font-weight:800; letter-spacing:-.3px; }
+  .view-in { animation:fade .28s ease both; }
+  @keyframes fade { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  @keyframes rise { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:none; } }
+  .anim { animation:rise .38s var(--spring) both; animation-delay:calc(var(--i, 0) * 28ms); }
+
+  /* интерактивность: нажатие, наведение, волна */
+  .rp { position:relative; overflow:hidden; transition:transform .16s var(--spring), background .2s, border-color .2s, box-shadow .2s; cursor:pointer; }
+  .rp:active { transform:scale(.965); }
+  @media (hover:hover) { .rp:hover { border-color:rgba(255,47,185,.45); box-shadow:0 0 0 1px rgba(255,47,185,.15), 0 8px 24px rgba(0,0,0,.5); } }
+  .ripple { position:absolute; border-radius:50%; background:rgba(255,47,185,.28); transform:scale(0); pointer-events:none; animation:rip .6s ease-out forwards; }
+  @keyframes rip { to { transform:scale(1); opacity:0; } }
+
+  .search { width:100%; padding:13px 16px; border-radius:16px; border:1px solid var(--line); background:var(--card);
+    color:var(--text); font-size:16px; margin-bottom:12px; outline:none; transition:border-color .2s, box-shadow .2s; }
+  .search:focus { border-color:var(--acc); box-shadow:0 0 0 3px rgba(255,47,185,.18); }
+
+  .seg { display:flex; gap:8px; margin:0 0 14px; }
+  .seg button { flex:1; padding:10px 0; border-radius:14px; border:1px solid var(--line); background:var(--card);
+    color:var(--mute); font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .seg button.on { color:#fff; border-color:transparent; background:linear-gradient(135deg, rgba(255,47,185,.9), rgba(192,38,211,.9));
+    box-shadow:0 6px 20px rgba(255,47,185,.28); }
+  .seg .arr { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; transition:transform .25s var(--spring); }
+  .seg .arr.down { transform:rotate(180deg); }
+
+  /* строки */
+  .row { display:flex; align-items:center; gap:14px; padding:12px 14px; margin-bottom:10px; border-radius:20px;
+    background:linear-gradient(180deg, var(--card2), var(--card)); border:1px solid var(--line); }
+  .row { content-visibility:auto; contain-intrinsic-size:auto 92px; }
+  .row img { width:66px; height:66px; border-radius:16px; background:var(--card); object-fit:cover; flex:none; opacity:0; transition:opacity .3s; }
+  .row img.ok { opacity:1; }
+  .row .t { flex:1; min-width:0; }
+  .row .n { font-weight:700; font-size:17px; line-height:1.2; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-word; }
+  .row .s { color:var(--mute); font-size:14px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .row .p { text-align:right; font-variant-numeric:tabular-nums; font-size:17px; font-weight:700; flex:none; }
+  .row .p small { display:block; font-size:13.5px; font-weight:600; margin-top:2px; }
+  .gem { width:15px; height:15px; vertical-align:-2px; margin-left:3px; fill:#3ea6ff; }
+  .sp { width:62px; height:32px; flex:none; }
+  .row { gap:11px; }
+  .up { color:var(--up); } .dn { color:var(--down); } .fl { color:var(--mute); }
+  .chg svg { width:12px; height:12px; vertical-align:-1px; fill:currentColor; margin-right:2px; }
+
+  .back, #lb-close { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 22px 11px 14px;
+    border-radius:999px; border:1.5px solid var(--acc); background:rgba(255,47,185,.14); color:var(--acc); font-size:17px; font-weight:700; }
+  .back { margin:2px 0 14px; }
+  .back svg, #lb-close svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* подборки */
+  .tgrid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .tcard { border-radius:22px; padding:14px; height:152px; border:1px solid var(--line); display:flex; flex-direction:column; justify-content:space-between;
+    background:linear-gradient(145deg, hsla(var(--h),75%,38%,.42), var(--card) 75%); }
+  .tcard .stack { display:flex; height:58px; }
+  .tcard .stack img { width:58px; height:58px; border-radius:16px; object-fit:cover; margin-right:-18px; background:var(--card);
+    border:2px solid #0b0b0d; opacity:0; transition:opacity .3s; }
+  .tcard .stack img.ok { opacity:1; }
+  .tcard .tt { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:17px; font-weight:800; margin-top:10px; letter-spacing:-.2px; }
+  .tcard .ts { color:#b9bcc4; font-size:13px; margin-top:2px; }
+
+  nav { display:flex; gap:6px; margin:0 14px calc(12px + env(safe-area-inset-bottom)); padding:7px; position:relative; z-index:3;
+    border:1px solid var(--line); border-radius:28px; background:#0c0c10; }
+  nav button { flex:1; background:none; border:0; color:var(--mute); padding:9px 0 7px; font-size:12px; font-weight:600; border-radius:22px;
+    transition:color .2s, background .25s, transform .16s var(--spring); }
+  nav button:active { transform:scale(.93); }
+  nav button.on { color:#fff; background:linear-gradient(135deg, rgba(255,47,185,.28), rgba(192,38,211,.22)); box-shadow:inset 0 0 0 1px rgba(255,47,185,.35); }
+  nav svg { display:block; margin:0 auto 3px; width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.9; transition:transform .3s var(--spring), filter .3s; }
+  nav button.on svg { transform:translateY(-2px) scale(1.12); filter:drop-shadow(0 0 6px rgba(255,47,185,.8)); }
+
+  .big { font-size:36px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.5px; }
+  .empty { color:var(--mute); text-align:center; padding:40px 12px; }
+  footer { color:var(--mute); font-size:12px; text-align:center; padding:16px 0 4px; }
+  footer a { color:var(--mute); }
+
+  /* кнопка «наверх» */
+  #back-fab { position:absolute; left:16px; bottom:100px; width:42px; height:42px; border-radius:50%; border:0; z-index:6; color:#fff;
+    background:linear-gradient(135deg, var(--acc2), var(--acc)); box-shadow:0 8px 26px rgba(192,38,211,.5), inset 0 1px 0 rgba(255,255,255,.35);
+    display:flex; align-items:center; justify-content:center; opacity:0; transform:translateX(-24px) scale(.4); pointer-events:none;
+    transition:opacity .25s, transform .35s var(--spring); }
+  #back-fab.show { opacity:1; transform:none; pointer-events:auto; }
+  #back-fab:active { transform:scale(.88); }
+  #back-fab svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
+  #up { position:absolute; right:16px; bottom:100px; width:42px; height:42px; border-radius:50%; border:0; z-index:6; color:#fff;
+    background:linear-gradient(135deg, var(--acc), var(--acc2)); box-shadow:0 8px 26px rgba(255,47,185,.5), inset 0 1px 0 rgba(255,255,255,.35);
+    display:flex; align-items:center; justify-content:center; opacity:0; transform:translateY(24px) scale(.4); pointer-events:none;
+    transition:opacity .25s, transform .35s var(--spring); }
+  #up.show { opacity:1; transform:none; pointer-events:auto; animation:glow 2.4s ease-in-out infinite; }
+  #up:active { transform:scale(.88); }
+  #up svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
+  @keyframes glow { 50% { box-shadow:0 8px 34px rgba(192,38,211,.7), inset 0 1px 0 rgba(255,255,255,.35); } }
+
+  /* карточка модели */
+  #lb { position:fixed; inset:0; background:#000; display:none; flex-direction:column; align-items:center; z-index:20;
+    padding:20px 16px 28px; text-align:center; overflow-y:auto; }
+  #lb.show { display:flex; animation:fade .22s ease both; }
+  #lb img { max-width:100%; max-height:32vh; object-fit:contain; flex:none; filter:drop-shadow(0 12px 36px rgba(255,47,185,.35)); animation:pop .45s var(--spring) both; }
+  @keyframes pop { from { transform:scale(.6); opacity:0; } to { transform:none; opacity:1; } }
+  #lb-t { font-size:20px; font-weight:800; margin-top:16px; }
+  #lb-s { color:var(--mute); margin-top:8px; line-height:1.7; }
+  #lb-s b { color:var(--text); }
+  #lb-ctl { width:100%; max-width:430px; margin-top:14px; }
+  #lb-chart { min-height:150px; }
+  #lb-close { margin-top:14px; width:100%; }
+  .seg-s { margin-top:-4px; } .seg-s button { padding:7px 0; font-size:13px; border-radius:12px; }
+  #lb-body { width:100%; max-width:430px; }
+  #lb-body.sl { animation:slL .28s ease both; } #lb-body.sr { animation:slR .28s ease both; }
+  @keyframes slL { from { opacity:0; transform:translateX(46px); } to { opacity:1; transform:none; } }
+  @keyframes slR { from { opacity:0; transform:translateX(-46px); } to { opacity:1; transform:none; } }
+  #lb-imgwrap { display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  #lb-imgwrap img { flex:1; min-width:0; }
+  .lbn { width:44px; height:44px; flex:none; border-radius:50%; border:1px solid var(--line); background:var(--card2); color:var(--text);
+    display:flex; align-items:center; justify-content:center; transition:transform .16s var(--spring); }
+  .lbn:active { transform:scale(.88); }
+  .lbn svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
+  #lb-pos { color:var(--mute); font-size:13px; margin-top:10px; min-height:18px; }
+  .gcard { border:1px solid var(--line); border-radius:22px; padding:14px 12px 12px; margin-bottom:16px;
+    background:linear-gradient(180deg, var(--card2), var(--card)); }
+  .gprice { font-size:32px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.4px; margin-top:-6px; }
+  .gprice .s { font-size:16px; font-weight:700; }
+  .top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .top .hico { width:46px; height:46px; flex:none; margin:0 0 10px; object-fit:contain; }
+  .shr { flex:none; width:36px; height:36px; margin:0 0 10px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); padding:0; }
+  .shr svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .shr img { width:100%; height:100%; border-radius:50%; display:block; }
+  #share { padding:0; border:0; overflow:hidden; background:transparent; }
+  .top .hico ~ h1 { font-size:21px; }
+  .top h1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lang { display:flex; flex:none; margin-bottom:10px; padding:3px; border:1px solid var(--line); border-radius:999px; background:var(--card); }
+  .lang span { padding:5px 10px; border-radius:999px; font-size:12px; font-weight:800; color:var(--mute); transition:background .2s, color .2s; }
+  .lang span.on { color:#fff; background:linear-gradient(135deg, var(--acc), var(--acc2)); }
+  .mnote { color:var(--mute); font-size:12.5px; margin:2px 0 10px; }
+  .mmap { position:relative; width:100%; border-radius:20px; overflow:hidden; background:#08080a; border:1px solid var(--line); }
+  .mtile { position:absolute; border-radius:11px; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; text-align:center; color:#fff; box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 -14px 26px rgba(0,0,0,.2), 0 1px 3px rgba(0,0,0,.4);
+    animation:mpop .45s var(--spring) both; text-shadow:0 1px 3px rgba(0,0,0,.55); }
+  .mtile img { object-fit:contain; flex:none; filter:drop-shadow(0 3px 6px rgba(0,0,0,.4)); }
+  .mtile b { font-size:15px; font-weight:800; line-height:1.1; padding:0 4px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mtile span { font-size:13px; font-weight:700; opacity:.95; display:flex; align-items:center; gap:1px; }
+  .mtile span .gem { fill:#fff; margin:0; width:12px; height:12px; }
+  .mtile em { font-style:normal; font-size:11.5px; font-weight:800; opacity:.95; }
+  @keyframes mpop { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:none; } }
+  .mlegend { display:flex; align-items:center; gap:8px; margin:12px 4px 4px; color:var(--mute); font-size:12px; font-weight:700; }
+  .mlegend i { flex:1; height:8px; border-radius:99px; background:linear-gradient(90deg, hsl(358 78% 44%), #3b3f48 50%, hsl(146 70% 44%)); }
+  .bub { position:absolute; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    text-align:center; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.55); animation:mpop .55s var(--spring) both;
+    box-shadow:inset 0 3px 0 rgba(255,255,255,.28), inset 0 -22px 34px rgba(0,0,0,.28), 0 10px 26px rgba(0,0,0,.5), 0 0 0 2px rgba(255,255,255,.07); }
+  .bub img { object-fit:contain; flex:none; filter:drop-shadow(0 4px 8px rgba(0,0,0,.45)); }
+  .bub b { font-size:14px; font-weight:800; line-height:1.1; max-width:88%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bub span { font-size:13px; font-weight:700; display:flex; align-items:center; gap:1px; }
+  .bub span .gem { fill:#fff; margin:0; width:12px; height:12px; }
+  .bub em { font-style:normal; font-size:12px; font-weight:800; opacity:.95; }
+  .buy { display:flex; align-items:center; justify-content:center; width:100%; padding:14px; border-radius:18px; border:0; color:#fff;
+    font-size:17px; font-weight:800; background:linear-gradient(135deg, #2ecc71, #17a05a); box-shadow:0 8px 24px rgba(46,204,113,.32), inset 0 1px 0 rgba(255,255,255,.3); margin:0 0 14px; }
+  #lb-buy { margin:14px 0 0; }
+  #sheet { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.62); display:none; align-items:flex-end; justify-content:center; }
+  #sheet.show { display:flex; animation:fade .2s ease both; }
+  #sheet-panel { width:100%; max-width:430px; background:#0f0f12; border:1px solid var(--line); border-bottom:0; border-radius:28px 28px 0 0;
+    padding:18px 16px calc(24px + env(safe-area-inset-bottom)); animation:sheetUp .35s var(--spring) both; }
+  @keyframes sheetUp { from { transform:translateY(100%); } to { transform:none; } }
+  .sh-h { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+  .sh-t { font-size:21px; font-weight:800; }
+  #sh-x { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--card2); color:var(--text); font-size:24px; line-height:1; }
+  .mk { display:flex; align-items:center; gap:12px; width:100%; padding:13px 14px; margin-bottom:10px; border-radius:18px; border:1px solid var(--line);
+    background:linear-gradient(180deg, var(--card2), var(--card)); color:var(--text); text-align:left; font-family:inherit; }
+  .mk.best { border-color:rgba(46,204,113,.6); box-shadow:0 0 0 1px rgba(46,204,113,.25), 0 6px 20px rgba(46,204,113,.18); }
+  .mk-i { width:42px; height:42px; border-radius:13px; object-fit:cover; flex:none; background:#222; }
+  .mk-n { flex:1; font-weight:700; font-size:16px; display:flex; flex-direction:column; gap:2px; }
+  .mk-n em { font-style:normal; font-size:12px; color:var(--up); font-weight:700; }
+  .mk-p { font-weight:800; font-size:17px; font-variant-numeric:tabular-nums; text-align:right; }
+  .lots-t { margin:14px 2px 8px; color:var(--mute); font-size:13px; font-weight:700; }
+  .lot { display:flex; align-items:center; gap:8px; width:100%; padding:10px 12px; margin-bottom:6px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); font-family:inherit; text-align:left; font-size:13px; }
+  .lot-n { font-weight:800; min-width:64px; } .lot-d { flex:1; color:var(--mute); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lot-m { color:var(--mute); } .lot-p { font-weight:800; font-variant-numeric:tabular-nums; }
+  #sheet-panel { max-height:88vh; overflow-y:auto; }
+  .fsel { display:flex; gap:8px; margin:0 0 12px; }
+  .fsel select { flex:1; min-width:0; padding:11px 12px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:14px; font-weight:600; font-family:inherit; appearance:none; -webkit-appearance:none; text-overflow:ellipsis; }
+  .fsel select:focus { outline:none; border-color:var(--acc); }
+  .shr.fav.on svg, .favb.on svg { fill:var(--acc); stroke:var(--acc); }
+  .shr.fav.on, .favb.on { color:var(--acc); }
+  .lbrow { display:flex; gap:10px; margin:14px 0 0; } .lbrow .buy { flex:1; margin:0; }
+  .favb { flex:none; width:54px; border-radius:18px; border:1px solid var(--line); background:var(--card); color:var(--mute); display:flex; align-items:center; justify-content:center; padding:0; }
+  .favb svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:2; stroke-linejoin:round; }
+  .unfav { flex:none; margin-left:10px; width:32px; height:32px; border-radius:50%; border:0; background:transparent; color:var(--mute); display:flex; align-items:center; justify-content:center; padding:0; font-size:24px; line-height:1; }
+  .unfav svg { width:20px; height:20px; fill:var(--acc); stroke:var(--acc); stroke-width:1.5; stroke-linejoin:round; }
+  #pf-tabs button { font-size:12px; padding:7px 2px; } #pf-tabs { gap:6px; }
+  #pf-fsub button i { font-style:normal; opacity:.7; margin-left:4px; }
+  .pcard { border:1px solid var(--line); background:linear-gradient(180deg, var(--card2), var(--card)); border-radius:20px; padding:14px 16px; margin-bottom:12px; }
+  .qty { display:flex; align-items:center; gap:8px; margin-top:6px; } .qty b { min-width:22px; text-align:center; }
+  .qty button { width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:18px; padding:0; }
+  .frm { display:flex; flex-direction:column; gap:10px; } .frm .buy { margin:0; }
+  .frm select, .frm input { width:100%; padding:13px 14px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:15px; font-family:inherit; }
+  .buy.alt { background:linear-gradient(135deg, #3ea6ff, #2d7be0); box-shadow:0 8px 24px rgba(62,166,255,.3), inset 0 1px 0 rgba(255,255,255,.3); }
+  .addr { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; word-break:break-all; margin:6px 0 10px; }
+  .cpy { padding:8px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:13px; font-weight:700; }
+  .hero { position:relative; border-radius:26px; padding:16px; margin:0 0 14px; border:1px solid rgba(255,47,185,.38);
+    background:radial-gradient(110% 130% at 0% 0%, rgba(255,47,185,.30), transparent 58%), radial-gradient(100% 120% at 100% 100%, rgba(192,38,211,.26), transparent 62%), var(--card);
+    box-shadow:0 12px 40px rgba(255,47,185,.18), inset 0 1px 0 rgba(255,255,255,.10); }
+  .hero-top { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .ava { position:relative; width:68px; height:68px; flex:none; border-radius:50%; padding:3px; background:linear-gradient(135deg, #ff2fb9, #c026d3 55%, #7a5cff); box-shadow:0 0 24px rgba(255,47,185,.45); }
+  .ava img, .ava i { position:absolute; inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:50%; object-fit:cover; background:#17101a; z-index:1; }
+  .ava i { display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:800; font-size:22px; z-index:0; }
+  .hero-n { min-width:0; } .nm { font-size:22px; font-weight:800; letter-spacing:-.3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .un { color:var(--mute); font-size:14px; margin-top:2px; }
+  .stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+  .stat { text-align:center; padding:10px 2px 9px; border-radius:16px; background:rgba(255,255,255,.045); border:1px solid rgba(255,47,185,.28); min-width:0; }
+  .stat b { display:block; font-size:18px; font-weight:800; } .stat span { display:block; font-size:10.5px; color:var(--mute); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #pf-tabs { padding:4px; border-radius:18px; background:rgba(255,255,255,.04); border:1px solid var(--line); gap:4px; }
+  #pf-tabs button { border:0; background:transparent; } #pf-tabs button.on { background:linear-gradient(135deg, rgba(255,47,185,.95), rgba(192,38,211,.95)); box-shadow:0 4px 16px rgba(255,47,185,.35); }
+  .pf-share { position:absolute; left:16px; right:16px; bottom:100px; z-index:30; } .pf-share[hidden] { display:none; }
+  #pf-body { padding-bottom:84px; }
+  .pf-share .buy { margin:0; gap:8px; background:linear-gradient(135deg, #ff2fb9, #c026d3); box-shadow:0 10px 30px rgba(255,47,185,.45), inset 0 1px 0 rgba(255,255,255,.35); }
+  .pf-share img { width:26px; height:26px; border-radius:50%; }
+  .tiles { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0 0 14px; }
+  .tile { position:relative; height:54px; border-radius:18px; padding:0 12px; display:grid; grid-template-columns:36px 1fr; grid-template-rows:auto; align-content:center; column-gap:10px; align-items:center; text-align:left; color:#fff; font-family:inherit; overflow:hidden; border:1px solid rgba(255,255,255,.14); }
+  .tile::before { content:""; position:absolute; width:90px; height:90px; right:-30px; top:-34px; border-radius:50%; filter:blur(20px); opacity:.6; }
+  .tile b { position:relative; grid-column:2; font-size:16px; font-weight:800; letter-spacing:-.2px; line-height:1.15; }
+  .tile em { position:relative; grid-column:2; font-style:normal; font-size:11px; color:rgba(255,255,255,.72); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tdn { background:linear-gradient(150deg, #ff2fb9 0%, #b0127f 55%, #5a0a4d 100%); box-shadow:0 14px 34px rgba(255,47,185,.38), inset 0 1px 0 rgba(255,255,255,.28); }
+  .tdn::before { background:#ffd36b; }
+  .tsh { background:linear-gradient(150deg, #7a5cff 0%, #5a2fd1 55%, #25125e 100%); box-shadow:0 14px 34px rgba(122,92,255,.38), inset 0 1px 0 rgba(255,255,255,.28); }
+  .tsh::before { background:#ff2fb9; }
+  .tic { position:relative; grid-row:1; width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(6px); box-shadow:0 6px 18px rgba(0,0,0,.25); }
+  .tic svg { width:20px; height:20px; fill:#fff; stroke:#fff; stroke-width:1.6; stroke-linejoin:round; }
+  .tic img { width:26px; height:26px; border-radius:50%; }
+  .mk.dis { opacity:.4; }
+  .tile:active { transform:scale(.97); }
+  .sh-note { color:var(--mute); font-size:12.5px; margin-top:6px; line-height:1.45; }
+  @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+<div id="app">
+  <main id="view"></main>
+  <div id="lb"><div id="lb-body">
+    <div id="lb-imgwrap">
+      <button class="lbn" id="lb-prev" aria-label="Предыдущая"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <img id="lb-img" alt="" onerror="this.style.visibility='hidden'">
+      <button class="lbn" id="lb-next" aria-label="Следующая"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <div id="lb-pos"></div><div id="lb-t"></div><div id="lb-s"></div>
+    <div id="lb-ctl">
+      <div id="lb-chart"></div>
+      <div class="seg" id="lb-per"></div>
+      <div class="lbrow"><button id="lb-buy" class="buy rp">Купить</button><button id="lb-fav" class="favb rp" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/></svg></button></div>
+      <button id="lb-close" class="rp"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Назад</button>
+    </div>
+  </div></div>
+  <div id="sheet"><div id="sheet-panel"></div></div>
+  <div class="pf-share" id="pf-share-wrap" hidden></div>
+  <button id="back-fab" aria-label="Назад"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <button id="up" aria-label="Наверх"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+  <nav>
+    <button id="tab-gifts" class="on"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-3-5 0 .5 1.5 3 1 5 0zm0 0c2-4 6-3 5 0-.5 1.5-3 1-5 0z"/></svg>Гифты</button>
+    <button id="tab-cap"><svg viewBox="0 0 24 24"><path d="M4 17l5-5.5 4 3L20 7M15 7h5v5"/></svg>Капа</button>
+    <button id="tab-profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4 20.5c1-4 4.2-6 8-6s7 2 8 6"/></svg>Профиль</button>
+  </nav>
+</div>
+<script>
+const tg = window.Telegram?.WebApp; tg?.ready(); tg?.expand();
+tg?.setHeaderColor?.('#000000'); tg?.setBackgroundColor?.('#000000');
+const $ = s => document.querySelector(s), view = $('#view');
+// ---- язык интерфейса: RU / EN (выбор запоминается) ----
+let LANG = 'ru';
+try { LANG = localStorage.getItem('lang') || ((tg?.initDataUnsafe?.user?.language_code || navigator.language || 'ru').slice(0, 2) === 'ru' ? 'ru' : 'en'); } catch (e) {}
+const I18N = {
+  ru: { nav_gifts: 'Гифты', nav_themes: 'Сэты', nav_map: 'Пузыри', nav_cap: 'Капа', title_map: 'Пузыри', pcs: 'шт.', pf_favs: 'Избранное', sh_port: 'Мой портфель', sh_models: 'Мои модели', sh_gifts: 'Мои подарки', sh_sets: 'Мои сэты', sh_app: 'Приложение', sh_note: 'Отправится текстом со ссылкой на бота.', sh_head: '', sh_port_h: 'Мой портфель в Gift Hub:', sh_models_h: 'Мои избранные модели в Gift Hub:', sh_gifts_h: 'Мои избранные подарки в Gift Hub:', sh_sets_h: 'Мои избранные сэты в Gift Hub:', tl_donate: 'Поддержать проект', tl_share: 'Расскажи друзьям', pf_guest: 'Гость', pf_positions: 'Позиции', pf_value: 'Стоимость', pf_port: 'Портфель', pf_alerts: 'Уведомления', pf_donate: 'Донат', pf_f_gift: 'Подарки', pf_f_model: 'Модели', pf_f_set: 'Сэты', pf_fav_empty: 'Здесь пока пусто. Нажми звёздочку на подарке, модели или сэте.', pf_total: 'Стоимость портфеля', pf_add: 'Добавить', pf_port_empty: 'Добавь свои подарки, и я посчитаю их стоимость.', pf_qty: 'Количество', pf_save: 'Сохранить', pf_whole: 'Весь подарок (по флору)', pf_al_note: 'Бот пришлёт сообщение, когда условие выполнится. Проверка каждые несколько минут.', pf_al_tg: 'Уведомления работают только в приложении внутри Telegram.', pf_al_add: 'Новое уведомление', pf_al_empty: 'Уведомлений пока нет.', pf_al_val: 'Значение (GRAM или %)', pf_c_below: 'Цена ниже', pf_c_above: 'Цена выше', pf_c_change: 'Изменение за сутки больше', dn_title: 'Поддержать проект', dn_text: 'Gift Hub бесплатный. Если он полезен, можно поддержать его развитие любой суммой.', dn_stars: 'Telegram Stars', dn_amount: 'Сумма в Stars', dn_send: 'Отправить Stars', dn_crypto: 'GRAM и USDT (сеть TON)', dn_addr: 'Адрес кошелька', dn_copy: 'Скопировать адрес', dn_copied: 'Скопировано', dn_gram: 'Отправить GRAM', dn_usdt: 'Отправить USDT', dn_note: 'GRAM — это TON. USDT отправляй только в сети TON.', dn_thanks: 'Спасибо за поддержку!',  hub_gifts: 'Подарки', hub_map: 'Пузыри', hub_themes: 'Сэты', nav_profile: 'Профиль', share_t: 'Поделиться',  search_set: 'Поиск сета', f_gift: 'Все гифты', f_model: 'Все модели', lots: 'Дешёвые лоты', no_lots: 'нет лотов', live_wait: 'Ищу живые лоты на маркетах…', buy_note_live: 'Цены и лоты — реальные предложения сейчас (обновляются раз в несколько минут). Нажми на лот, чтобы открыть подарок.', models_tab: 'Модели', grp_all: 'Все', grp_pets: 'Питомцы', grp_gems: 'Цвет', grp_status: 'Статус', grp_other: 'Прочее', buy: 'Купить', buy_title: 'Где купить', buy_on: 'Купить на', best: 'лучшая цена', no_price: 'цена на маркете', buy_note: 'Цены — это цена подарка (коллекции) на каждом маркете, самый дешёвый сверху. Цена конкретной модели может отличаться.', mode_map: 'Гифты', mode_top: 'Модели', dir_up: 'Рост', dir_down: 'Падение', top_wait: 'Данные за этот период ещё копятся', size_profit: 'Профит', size_cap: 'Капа', note_up: 'топ-10 по росту цены за период: чем больше процент, тем больше пузырь', note_down: 'топ-10 по падению цены за период: чем больше процент, тем больше пузырь',  note_cap: 'топ-10 по капитализации: размер пузыря — капитализация, процент — изменение цены', note_top: 'топ-10 моделей по изменению цены за период: чем больше процент, тем больше пузырь', map_note: 'размер — капитализация, цвет — изменение цены за период', back: 'Назад', up: 'Наверх',
+    title_gifts: 'Гифты', title_themes: 'Сэты', title_cap: 'Капитализация',
+    search_gift: 'Поиск подарка', search_model: 'Поиск модели',
+    sort_price: 'Цена', sort_cap: 'Капа', sort_supply: 'Тираж', sort_chg: 'Рост', sort_rarity: 'Редкость',
+    p_1h: '1ч', p_1d: '1д', p_1w: '1н', p_1m: '1м', p_all: 'Всё',
+    cap_w: 'Капа', mod_short: 'мод.', nothing: 'Ничего не найдено', noprice: 'нет цены', sold: 'прод.',
+    rarity_l: 'редкость', supply: 'Тираж', loading: 'Загрузка…', chart_fail: 'Не удалось загрузить график',
+    chart_few: 'За этот период данных мало', leg_line_gift: 'линия: цена подарка · ', leg_green: 'зелёные точки: продажи · ',
+    leg_white: 'белая точка: цена сейчас', leg_line: 'линия: цена · ', flat: 'цена не менялась за период · ', leg_dots: 'точки: реальные продажи',
+    price_l: 'Цена:', from_sale: 'по свежей продаже', rarity_c: 'Редкость:', last_sale: 'Последняя продажа:',
+    ago_min: 'мин назад', ago_h: 'ч назад', ago_d: 'дн назад', models_w: 'моделей', from_w: 'от',
+    cap_note: 'оценка: тираж × цена подарка, по всем подаркам',
+    cap_wait: 'История копится: график появится, когда наберётся больше одной точки.' },
+  en: { nav_gifts: 'Gifts', nav_themes: 'Sets', nav_map: 'Bubbles', nav_cap: 'Cap', title_map: 'Bubbles', pcs: 'pcs', pf_favs: 'Favorites', sh_port: 'My portfolio', sh_models: 'My models', sh_gifts: 'My gifts', sh_sets: 'My sets', sh_app: 'The app', sh_note: 'Sent as text with a link to the bot.', sh_head: '', sh_port_h: 'My portfolio in Gift Hub:', sh_models_h: 'My favorite models in Gift Hub:', sh_gifts_h: 'My favorite gifts in Gift Hub:', sh_sets_h: 'My favorite sets in Gift Hub:', tl_donate: 'Support the project', tl_share: 'Tell your friends', pf_guest: 'Guest', pf_positions: 'Items', pf_value: 'Value', pf_port: 'Portfolio', pf_alerts: 'Alerts', pf_donate: 'Donate', pf_f_gift: 'Gifts', pf_f_model: 'Models', pf_f_set: 'Sets', pf_fav_empty: 'Nothing here yet. Tap the star on a gift, model or set.', pf_total: 'Portfolio value', pf_add: 'Add', pf_port_empty: 'Add your gifts and I will calculate their value.', pf_qty: 'Quantity', pf_save: 'Save', pf_whole: 'Whole gift (floor price)', pf_al_note: 'The bot will message you when the condition is met. Checked every few minutes.', pf_al_tg: 'Alerts only work in the app inside Telegram.', pf_al_add: 'New alert', pf_al_empty: 'No alerts yet.', pf_al_val: 'Value (GRAM or %)', pf_c_below: 'Price below', pf_c_above: 'Price above', pf_c_change: 'Daily change over', dn_title: 'Support the project', dn_text: 'Gift Hub is free. If it is useful, you can support its development with any amount.', dn_stars: 'Telegram Stars', dn_amount: 'Amount in Stars', dn_send: 'Send Stars', dn_crypto: 'GRAM and USDT (TON network)', dn_addr: 'Wallet address', dn_copy: 'Copy address', dn_copied: 'Copied', dn_gram: 'Send GRAM', dn_usdt: 'Send USDT', dn_note: 'GRAM is TON. Send USDT only on the TON network.', dn_thanks: 'Thank you for your support!',  hub_gifts: 'Gifts', hub_map: 'Bubbles', hub_themes: 'Sets', nav_profile: 'Profile', share_t: 'Share',  search_set: 'Search sets', f_gift: 'All gifts', f_model: 'All models', lots: 'Cheapest listings', no_lots: 'no listings', live_wait: 'Looking for live listings…', buy_note_live: 'Prices and listings are real offers right now (refreshed every few minutes). Tap a listing to open the gift.', models_tab: 'Models', grp_all: 'All', grp_pets: 'Pets', grp_gems: 'Color', grp_status: 'Status', grp_other: 'Other', buy: 'Buy', buy_title: 'Where to buy', buy_on: 'Buy on', best: 'best price', no_price: 'price on the market', buy_note: 'Prices are the gift (collection) floor on each market, cheapest first. A specific model may cost differently.', mode_map: 'Gifts', mode_top: 'Models', dir_up: 'Growth', dir_down: 'Decline', top_wait: 'Data for this period is still accumulating', size_profit: 'Profit', size_cap: 'Cap', note_up: 'top 10 by price growth over the period: the bigger the percent, the bigger the bubble', note_down: 'top 10 by price decline over the period: the bigger the percent, the bigger the bubble',  note_cap: 'top 10 by market cap: bubble size = market cap, percent = price change', note_top: 'top 10 models by price change over the period: the bigger the percent, the bigger the bubble', map_note: 'size = market cap, color = price change over the period', back: 'Back', up: 'Up',
+    title_gifts: 'Gifts', title_themes: 'Sets', title_cap: 'Market cap',
+    search_gift: 'Search gifts', search_model: 'Search models',
+    sort_price: 'Price', sort_cap: 'Cap', sort_supply: 'Supply', sort_chg: 'Growth', sort_rarity: 'Rarity',
+    p_1h: '1H', p_1d: '1D', p_1w: '1W', p_1m: '1M', p_all: 'All',
+    cap_w: 'Cap', mod_short: 'models', nothing: 'Nothing found', noprice: 'no price', sold: 'sold',
+    rarity_l: 'rarity', supply: 'Supply', loading: 'Loading…', chart_fail: 'Failed to load the chart',
+    chart_few: 'Not enough data for this period', leg_line_gift: 'line: gift price · ', leg_green: 'green dots: sales · ',
+    leg_white: 'white dot: price now', leg_line: 'line: price · ', flat: 'price unchanged over the period · ', leg_dots: 'dots: real sales',
+    price_l: 'Price:', from_sale: 'from a recent sale', rarity_c: 'Rarity:', last_sale: 'Last sale:',
+    ago_min: 'min ago', ago_h: 'h ago', ago_d: 'd ago', models_w: 'models', from_w: 'from',
+    cap_note: 'estimate: supply × gift price, all gifts',
+    cap_wait: 'History is accumulating: the chart appears once there is more than one point.' },
+};
+const T = k => I18N[LANG][k] ?? I18N.ru[k] ?? k;
+const LOC = () => LANG === 'ru' ? 'ru' : 'en-US';
+const CH_PERIODS = [['0.04', '1h'], ['1', '1d'], ['7', '1w'], ['30', '1m'], ['36500', 'all']];
+const cropHour = (arr, d) => d < 1 ? arr.filter(p => p.t >= Date.now() / 1000 - 3600) : arr;  // «1ч»: сервер отдаёт сутки, оставляем последний час
+const perBtns = () => CH_PERIODS.map(([k, p]) => `<button class="rp" data-v="${k}">${T('p_' + p)}</button>`).join('');
+// верхняя строка экрана: заголовок слева, переключатель языка справа
+const STAR = '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/></svg>';
+const favAttr = f => `data-k="${esc(f.kind)}" data-g="${esc(f.gift)}" data-m="${esc(f.model || '')}"`;
+const topbar = (title, icon, fav) => `<div class="top">${icon ? `<img class="hico" src="${icon}" alt="" onerror="this.style.display='none'">` : ''}<h1>${title}</h1>${fav ? `<button class="shr rp fav ${U.isFav(fav.kind, fav.gift, fav.model) ? 'on' : ''}" id="fav" ${favAttr(fav)} aria-label="Favorite">${STAR}</button>` : ''}<button class="shr rp" id="share" aria-label="Share"><img src="/m/share.png" alt=""></button><div class="lang rp" id="lang"><span class="${LANG === 'ru' ? 'on' : ''}">RU</span><span class="${LANG === 'en' ? 'on' : ''}">EN</span></div></div>`;
+const api = p => fetch('/api' + p).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => n == null ? '—' : n >= 1000 ? Math.round(n).toLocaleString(LOC()) : (+n.toFixed(2)).toString();
+const fmtK = n => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1) + 'M' : n >= 1e3 ? (n/1e3).toFixed(1) + 'K' : fmt(n);
+const fmtS = n => n == null ? '—' : Math.round(n).toLocaleString(LOC()).replace(/\u00a0/g, ' ');  // тираж целиком: 200 000
+const FOOT = '<footer>Powered by <a href="https://t.me/GiftChanges">@GiftChanges</a> (api.changes.tg)</footer>';
+const short = n => n.toLowerCase().replace(/[^a-z ]/g, '').trim().split(/\s+/).join('_');
+const img = n => `/img/g/${short(n)}.webp`;
+const img_ = img;
+// файл модели в датасете: нижний регистр, пробелы -> «_», остальные символы сохраняются; g и m — запасной источник
+const mimg = (g, m, full) => `/img/m/${short(g)}/${encodeURIComponent(m.toLowerCase().replace(/ /g, '_'))}.webp?g=${encodeURIComponent(g)}&m=${encodeURIComponent(m)}${full ? '&full=1' : ''}`;
+const ago = ts => { const s = Date.now()/1000 - ts; return s < 3600 ? Math.max(1, Math.round(s/60)) + ' ' + T('ago_min') : s < 86400 ? Math.round(s/3600) + ' ' + T('ago_h') : Math.round(s/86400) + ' ' + T('ago_d'); };
+const GEM = '<svg class="gem" viewBox="0 0 24 24"><path d="M12 2l9 8-9 12L3 10z"/></svg>';
+const imgTag = src => `<img src="${src}" onload="this.classList.add('ok')" onerror="this.style.visibility='hidden'" decoding="async">`;
+
+// отклик: вибрация и волна при нажатии
+const hap = (t = 'light') => { try { tg?.HapticFeedback?.impactOccurred(t); } catch (e) {} };
+const hapOk = () => { try { tg?.HapticFeedback?.notificationOccurred('success'); } catch (e) {} };
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.rp, nav button, #up');
+  if (!el) return;
+  hap(el.id === 'up' ? 'medium' : 'light');
+  if (!el.classList.contains('rp')) return;
+  const r = el.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2, s = document.createElement('span');
+  s.className = 'ripple';
+  s.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d/2}px;top:${e.clientY - r.top - d/2}px`;
+  el.appendChild(s); setTimeout(() => s.remove(), 650);
+}, { passive: true });
+
+// мини-график подарка и процент изменения
+const spark = (arr, up) => {
+  if (!arr || arr.length < 2) return '<div class="sp"></div>';
+  const w = 84, h = 34, lo = Math.min(...arr), hi = Math.max(...arr);
+  const x = i => i / (arr.length - 1) * w, y = v => hi === lo ? h / 2 : h - 3 - (v - lo) / (hi - lo) * (h - 6);
+  const d = arr.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  const col = up === 0 ? '#8a8a90' : up > 0 ? '#2ecc71' : '#ff5a5f', id = 'g' + Math.random().toString(36).slice(2, 8);
+  return `<svg class="sp" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>` +
+    `<path d="${d}L${w},${h}L0,${h}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+};
+const chg = p => {
+  if (p == null) return '<span class="fl">—</span>';
+  const cls = p > 0 ? 'up' : p < 0 ? 'dn' : 'fl';
+  const arrow = p === 0 ? '' : `<svg viewBox="0 0 24 24" style="transform:rotate(${p > 0 ? 0 : 180}deg)"><path d="M12 4l9 12H3z"/></svg>`;
+  return `<span class="${cls} chg">${arrow}${Math.abs(p).toFixed(2)}%</span>`;
+};
+const arrowBtn = (on, dir) => on ? `<svg class="arr ${dir === 1 ? '' : 'down'}" viewBox="0 0 24 24"><path d="M12 20V5M5.5 11.5L12 5l6.5 6.5"/></svg>` : '';
+const sortRows = (rows, field, dir) => rows.slice().sort((a, b) => {  // без значения всегда внизу
+  const x = a[field], y = b[field];
+  return x == null ? (y == null ? 0 : 1) : y == null ? -1 : (x - y) * dir;
+});
+const hubSeg = on => `<div class="seg" id="hub">${['gifts', 'map', 'themes'].map(k => `<button class="rp ${k === on ? 'on' : ''}" data-h="${k}">${T('hub_' + k)}</button>`).join('')}</div>`;
+const bindHub = () => document.querySelectorAll('#hub button').forEach(b => b.onclick = () => { if (!b.classList.contains('on')) goTab(b.dataset.h); });
+const stagger = i => `style="--i:${Math.min(i, 14)}"`;
+
+const TABOF = { gifts: 'gifts', map: 'gifts', themes: 'gifts', cap: 'cap', profile: 'profile' };  // «Пузыри» и «Сэты» живут внутри вкладки «Гифты»
+function setTab(t) { ['gifts', 'cap', 'profile'].forEach(k => $('#tab-' + k).classList.toggle('on', k === TABOF[t])); }
+// навигация: стек экранов. «Назад» возвращает ровно туда, где были: тот же экран, прокрутка и поиск
+const routes = { gifts: showGifts, themes: showThemes, map: showMap, theme: showTheme, models: showModels, allmodels: showAllModels, cap: showCap, profile: showProfile };
+let stack = [], cur = { name: 'gifts' }, restoreState = null, renderAll = false;
+function navigate(name, arg) {  // вглубь: запоминаем текущий экран
+  stack.push({ ...cur, scroll: view.scrollTop, q: $('#q')?.value || '' });
+  cur = { name, arg }; restoreState = null; routes[name](arg);
+}
+function goBack() {
+  const prev = stack.pop();
+  if (!prev) return;
+  hap(); cur = { name: prev.name, arg: prev.arg }; restoreState = { scroll: prev.scroll, q: prev.q };
+  routes[prev.name](prev.arg);
+}
+function goTab(name) { hap('light'); setTab(name); stack = []; cur = { name }; restoreState = null; view.scrollTop = 0; routes[name](); }
+$('#tab-gifts').onclick = () => goTab('gifts');
+$('#tab-cap').onclick = () => goTab('cap');
+$('#tab-profile').onclick = () => goTab('profile');
+view.addEventListener('scroll', () => $('#up').classList.toggle('show', view.scrollTop > 400), { passive: true });
+$('#up').onclick = () => view.scrollTo({ top: 0, behavior: 'smooth' });
+// viewId: после await ответ мог прийти, когда пользователь уже ушёл на другую вкладку — такой ответ отбрасываем
+let viewId = 0;
+const mount = html => { viewId++; setBack(null); const sw = $('#pf-share-wrap'); if (sw) sw.hidden = true; view.innerHTML = html; view.firstElementChild?.classList.add('view-in'); return viewId; };
+
+// круглая кнопка «назад» слева (как «вверх» справа) и нативная кнопка Telegram: появляются во вложенных экранах
+let backFn = null;
+function setBack(fn, fab = true) {  // fab=false: круглую кнопку не показываем (работает только кнопка Telegram)
+  backFn = fn; $('#back-fab').classList.toggle('show', !!fn && fab);
+  try { fn ? tg?.BackButton?.show() : tg?.BackButton?.hide(); } catch (e) {}
+}
+$('#back-fab').onclick = () => backFn?.();
+try { tg?.BackButton?.onClick(() => { $('#lb').classList.contains('show') ? $('#lb').classList.remove('show') : backFn?.(); }); } catch (e) {}
+
+/* ---------- Подарки ---------- */
+let giftsCache = null, giftSort = { key: 'price', dir: 1 }, giftPeriod = '1d', giftsScroll = 0;
+const PERIODS = ['1h', '1d', '1w', '1m', 'all'];
+const giftChange = g => g.changes ? g.changes[giftPeriod] : null;
+const GSORT = { price: g => g.floor_ton, supply: g => g.upgraded || g.supply, chg: giftChange };
+const sortBy = (rows, fn, dir) => rows.slice().sort((a, b) => {  // без значения всегда внизу
+  const x = fn(a), y = fn(b);
+  return x == null ? (y == null ? 0 : 1) : y == null ? -1 : (x - y) * dir;
+});
+
+// список порциями: первые 30 строк сразу, остальные по мере прокрутки — быстро открывается и не лагает
+const CHUNK = 30;
+function renderList(box, rows, rowHtml, animate) {
+  box._io?.disconnect(); box._sent?.remove(); box.innerHTML = '';
+  if (!rows.length) { box.innerHTML = '<div class="empty">' + T('nothing') + '</div>'; return; }
+  let shown = 0;
+  const more = () => {
+    const part = rows.slice(shown, shown + (renderAll ? rows.length : CHUNK));  // при возврате рисуем всё сразу, чтобы прокрутка встала точно
+    box.insertAdjacentHTML('beforeend', part.map((r, i) => rowHtml(r, shown + i, animate && shown + i < 10)).join(''));
+    shown += part.length;
+  };
+  more();
+  if (shown >= rows.length) return;
+  const s = document.createElement('div'); s.style.height = '40px'; box.after(s); box._sent = s;
+  box._io = new IntersectionObserver(es => {
+    if (!es[0].isIntersecting) return;
+    more();
+    if (shown >= rows.length) { box._io.disconnect(); s.remove(); } else { box._io.unobserve(s); box._io.observe(s); }
+  }, { root: view, rootMargin: '700px' });
+  box._io.observe(s);
+}
+
+async function showGifts() {
+  const id = mount(`<div>${topbar(T('title_gifts'))}${hubSeg('gifts')}<input class="search" placeholder="${T('search_gift')}" id="q">
+    <div class="seg" id="sort"><button class="rp" data-v="price">Цена</button><button class="rp" data-v="supply">Тираж</button></div>
+    <div id="list"></div></div>`);
+  bindHub();
+  giftsCache ||= await api('/gifts');
+  if (id !== viewId) return;
+  const box = $('#list');
+  let animate = true;
+  const giftRow = (g, i, anim) => `
+    <div class="row rp ${anim ? 'anim' : ''}" data-g="${esc(g.name)}" ${stagger(i)}>
+      ${imgTag(img(g.name))}
+      <div class="t"><div class="n">${esc(g.name)}</div><div class="s">${g.upgraded ? '~' + fmtS(g.upgraded) : g.supply != null ? fmtS(g.supply) : g.models + ' ' + T('mod_short')}</div></div>
+      <div class="p">${fmt(g.floor_ton)}${GEM}<small>${chg(giftChange(g))}</small></div></div>`;
+  const draw = () => {
+    const q = $('#q').value.toLowerCase();
+    document.querySelectorAll('#sort button').forEach(b => {
+      const on = b.dataset.v === giftSort.key; b.classList.toggle('on', on);
+      b.innerHTML = T({ price: 'sort_price', supply: 'sort_supply', chg: 'sort_chg' }[b.dataset.v]) + arrowBtn(on, giftSort.dir);
+    });
+    renderList(box, sortBy(giftsCache.filter(g => g.name.toLowerCase().includes(q)), GSORT[giftSort.key], giftSort.dir), giftRow, animate);
+    animate = false;
+  };
+  box.onclick = e => { const el = e.target.closest('[data-g]'); if (el) navigate('models', el.dataset.g); };
+  document.querySelectorAll('#sort button').forEach(b => b.onclick = () => {
+    giftSort = b.dataset.v === giftSort.key ? { key: giftSort.key, dir: -giftSort.dir } : { key: b.dataset.v, dir: b.dataset.v === 'price' ? 1 : -1 };
+    animate = true; draw(); view.scrollTop = 0;
+  });
+  $('#q').oninput = draw;
+  const rs = restoreState; restoreState = null;
+  if (rs) { $('#q').value = rs.q; animate = false; renderAll = true; }
+  draw(); renderAll = false;
+  if (rs) view.scrollTo({ top: rs.scroll, behavior: 'instant' });
+}
+
+/* ---------- Модели подарка ---------- */
+let modelSort = { key: 'price', dir: 1 };
+const modelRow = (m, gift, sub, i, anim) => `
+  <div class="row rp ${anim ? 'anim' : ''}" data-i="${i}" ${stagger(i)}>
+    ${imgTag(mimg(gift, m.name))}
+    <div class="t"><div class="n">${esc(m.name)}</div><div class="s">${sub}</div></div>
+    <div class="p">${m.floor_ton != null ? fmt(m.floor_ton) + GEM
+      : m.last_sale_ton != null ? '<span class="fl">' + fmt(m.last_sale_ton) + '</span> <span class="s">' + T('sold') + '</span>' : '<span class="fl">' + T('noprice') + '</span>'}</div></div>`;
+const rarityTxt = m => T('rarity_l') + ' ' + (m.rarity_permille != null ? m.rarity_permille / 10 + '%' : '—');
+
+// сверху экрана подарка: цена, тираж, капа и график цены с периодами
+let gcDays = 30;
+function giftHead(gift) {
+  const g = giftsCache?.find(x => x.name === gift);
+  const info = g ? `<div class="gprice">${fmt(g.floor_ton)}${GEM} <span class="s">${chg(giftChange(g))}</span></div>
+    <div class="s" style="color:var(--mute);margin:2px 0 12px">${T('supply')} ${g.upgraded ? '~' + fmtS(g.upgraded) + (g.supply ? ' / ' + fmtS(g.supply) : '') : g.supply != null ? fmtS(g.supply) : '—'}${g.cap_ton != null ? ' · ' + T('cap_w') + ' ' + fmtK(g.cap_ton) + ' GRAM' : ''}</div>` : '';
+  return `${info}<button class="buy rp" id="buy-gift">${T('buy')}</button><div class="gcard"><div id="gchart"><div class="empty" style="padding:30px">${T('loading')}</div></div>
+    <div class="seg seg-s" id="gper2" style="margin:10px 0 0">${perBtns()}</div></div>`;
+}
+async function drawGiftChart(gift) {
+  const id = viewId, box = $('#gchart');
+  document.querySelectorAll('#gper2 button').forEach(b => b.classList.toggle('on', +b.dataset.v === gcDays));
+  let h;
+  try { h = await api('/gifts/' + encodeURIComponent(gift) + '/history?days=' + Math.ceil(gcDays)); }
+  catch (e) { if (id === viewId) box.innerHTML = '<div class="empty" style="padding:30px">' + T('chart_fail') + '</div>'; return; }
+  if (id !== viewId) return;
+  const fl = cropHour(h.floors.map(p => ({ t: p.ts, v: p.price_ton })), gcDays), sl = cropHour(h.sales.map(p => ({ t: p.ts, v: p.price_ton })), gcDays);
+  const cur = h.now ? { t: h.now.ts, v: h.now.price_ton } : null;
+  box.innerHTML = fl.concat(sl, cur ? [cur] : []).length < 2 ? '<div class="empty" style="padding:30px">' + T('chart_few') + '</div>'
+    : chartSvg(fl, sl, 170, cur) + `<div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${fl.length > 1 && Math.max(...fl.map(p => p.v)) === Math.min(...fl.map(p => p.v)) ? T('flat') : ''}${fl.length > 1 ? T('leg_line_gift') : ''}${sl.length ? T('leg_green') : ''}${T('leg_white')}</div>`;
+}
+
+function modelsView(rows, gift, subFn, title, withFilters, fav) {
+  mount(`<div>${topbar(esc(title), gift ? img_(gift) : null, fav || (gift ? { kind: 'gift', gift } : null))}${gift ? giftHead(gift) : ''}<input class="search" placeholder="${T('search_model')}" id="q">
+    ${withFilters ? `<div class="fsel"><select id="f-gift"></select><select id="f-model"></select></div>` : ''}
+    <div class="seg" id="msort"><button class="rp" data-v="price">Цена</button>${gift ? '' : '<button class="rp" data-v="cap">Капа</button>'}<button class="rp" data-v="rarity">Редкость</button></div>
+    <div id="list"></div></div>`);
+  setBack(stack.length ? goBack : null);
+  if (gift) {
+    document.querySelectorAll('#gper2 button').forEach(b => b.onclick = () => { gcDays = +b.dataset.v; drawGiftChart(gift); });
+    $('#buy-gift').onclick = () => openBuy(gift);
+    drawGiftChart(gift);
+  }
+  const fv = { gift: '', model: '' };
+  const fillSel = () => {  // списки зависят друг от друга: модели — выбранного подарка, подарки — выбранной модели
+    if (!withFilters) return;
+    const gifts = [...new Set(rows.filter(m => !fv.model || m.name === fv.model).map(m => m.gift))].sort();
+    const names = [...new Set(rows.filter(m => !fv.gift || m.gift === fv.gift).map(m => m.name))].sort();
+    $('#f-gift').innerHTML = `<option value="">${T('f_gift')}</option>` + gifts.map(x => `<option ${x === fv.gift ? 'selected' : ''} value="${esc(x)}">${esc(x)}</option>`).join('');
+    $('#f-model').innerHTML = `<option value="">${T('f_model')}</option>` + names.map(x => `<option ${x === fv.model ? 'selected' : ''} value="${esc(x)}">${esc(x)}</option>`).join('');
+  };
+  const MF = { price: m => m.floor_ton, rarity: m => m.rarity_permille, cap: m => m.cap_ton };
+  const box = $('#list');
+  let animate = true, shown = [];
+  const draw = () => {
+    const q = $('#q').value.toLowerCase();
+    document.querySelectorAll('#msort button').forEach(b => {
+      const on = b.dataset.v === modelSort.key; b.classList.toggle('on', on);
+      b.innerHTML = T({ price: 'sort_price', cap: 'sort_cap', rarity: 'sort_rarity' }[b.dataset.v]) + arrowBtn(on, modelSort.dir);
+    });
+    const words = q.split(/\s+/).filter(Boolean);
+    shown = sortBy(rows.filter(m => { const t = (m.name + ' ' + (m.gift || '')).toLowerCase(); return words.every(w => t.includes(w)) && (!fv.gift || m.gift === fv.gift) && (!fv.model || m.name === fv.model); }), MF[modelSort.key], modelSort.dir);
+    renderList(box, shown, (m, i, anim) => modelRow(m, gift || m.gift, subFn(m), i, anim), animate);
+    animate = false;
+  };
+  // нажатие открывает карточку; соседние модели списка переключаются свайпом
+  box.onclick = e => {
+    const el = e.target.closest('[data-i]');
+    if (el) openLb(shown.map(m => ({ gift: gift || m.gift, m })), +el.dataset.i);
+  };
+  document.querySelectorAll('#msort button').forEach(b => b.onclick = () => {
+    modelSort = b.dataset.v === modelSort.key ? { key: modelSort.key, dir: -modelSort.dir } : { key: b.dataset.v, dir: 1 };
+    animate = true; draw(); view.scrollTop = 0;
+  });
+  $('#q').oninput = draw;
+  if (withFilters) {
+    fillSel();
+    $('#f-gift').onchange = e => { fv.gift = e.target.value; fillSel(); animate = true; draw(); view.scrollTop = 0; };
+    $('#f-model').onchange = e => { fv.model = e.target.value; fillSel(); animate = true; draw(); view.scrollTop = 0; };
+  }
+  const rs = restoreState; restoreState = null;
+  if (rs) { $('#q').value = rs.q; animate = false; renderAll = true; }
+  draw(); renderAll = false;
+  view.scrollTo({ top: rs ? rs.scroll : 0, behavior: 'instant' });
+}
+async function showModels(gift) {
+  const id = viewId, models = await api('/gifts/' + encodeURIComponent(gift) + '/models');
+  if (id !== viewId) return;
+  modelsView(models, gift, rarityTxt, gift);
+}
+
+/* ---------- Подборки ---------- */
+let themesCache = null, themeGroup = 'all';
+const GROUPS_UI = ['all', 'pets', 'status', 'gems'];
+async function showThemes() {
+  const id = mount(`<div>${topbar(T('title_themes'))}${hubSeg('themes')}<input class="search" placeholder="${T('search_set')}" id="q"><div class="seg seg-s" id="tgroups">${GROUPS_UI.map(k => `<button class="rp" data-v="${k}">${T('grp_' + k)}</button>`).join('')}</div><div class="tgrid" id="tg"></div></div>`);
+  bindHub();
+  themesCache ||= await api('/themes');
+  if (id !== viewId) return;
+  const draw = () => {
+    document.querySelectorAll('#tgroups button').forEach(b => b.classList.toggle('on', b.dataset.v === themeGroup));
+    const q = $('#q').value.trim().toLowerCase();  // при поиске ищем по всем группам
+    const list = themesCache.filter(t => q ? (t.title + ' ' + (t.title_en || '')).toLowerCase().includes(q) : (themeGroup === 'all' || t.group === themeGroup));
+    $('#tg').innerHTML = list.map((t, i) => `
+    <div class="tcard rp anim" data-t="${esc(t.id)}" style="--h:${(i * 41 + 200) % 360};--i:${Math.min(i, 14)}">
+      <div class="stack">${t.samples.map(s => imgTag(mimg(s.gift, s.model))).join('')}</div>
+      <div><div class="tt">${esc(LANG === 'en' ? t.title_en || t.title : t.title)}</div><div class="ts">${t.count} ${T('models_w')}</div></div></div>`).join('');
+    document.querySelectorAll('#tg [data-t]').forEach(el => el.onclick = () => navigate('theme', el.dataset.t));
+  };
+  $('#q').oninput = draw;
+  document.querySelectorAll('#tgroups button').forEach(b => b.onclick = () => { themeGroup = b.dataset.v; draw(); view.scrollTo({ top: 0 }); });
+  draw();
+  const rs = restoreState; restoreState = null;
+  if (rs) view.scrollTo({ top: rs.scroll, behavior: 'instant' });
+}
+async function showAllModels() {
+  const id = viewId, rows = await api('/models/all');
+  giftsCache ||= await api('/gifts');
+  if (id !== viewId) return;
+  const supply = Object.fromEntries(giftsCache.map(g => [g.name, g.upgraded || g.supply]));
+  rows.forEach(m => { m.cap_ton = supply[m.gift] && m.rarity_permille > 0 && m.floor_ton != null ? supply[m.gift] * m.rarity_permille / 1000 * m.floor_ton : null; });
+  modelsView(rows, null, m => esc(m.gift) + (m.rarity_permille > 0 && supply[m.gift] ? ' · ~' + fmtS(Math.round(supply[m.gift] * m.rarity_permille / 1000)) + ' ' + T('pcs') : ''), T('models_tab'), true);
+}
+async function showTheme(tid) {
+  const id = viewId, d = await api('/themes/' + encodeURIComponent(tid) + '/models');
+  giftsCache ||= await api('/gifts');
+  if (id !== viewId) return;
+  // капитализация модели = тираж подарка × доля модели (редкость) × цена модели
+  const supply = Object.fromEntries(giftsCache.map(g => [g.name, g.upgraded || g.supply]));
+  d.models.forEach(m => { m.cap_ton = supply[m.gift] && m.rarity_permille > 0 && m.floor_ton != null ? supply[m.gift] * m.rarity_permille / 1000 * m.floor_ton : null; });
+  modelsView(d.models, null, m => esc(m.gift) + ' · ' + T('cap_w') + ' ' + (m.cap_ton != null ? fmtK(m.cap_ton) + ' GRAM' : '—'),
+    LANG === 'en' ? d.title_en || d.title : d.title, false, { kind: 'set', gift: tid });
+}
+
+/* ---------- Карта рынка (treemap) ---------- */
+let mapPeriod = '1d', mapMode = 'map', topDir = 'up', mapSize = 'up';
+// раскладка «квадратами»: чем больше капитализация, тем больше блок
+function treemap(items, W, H) {
+  const total = items.reduce((a, i) => a + i.v, 0), k = W * H / total;
+  const queue = items.map(i => ({ ...i, area: i.v * k })), out = [];
+  let x = 0, y = 0, w = W, h = H, row = [];
+  const sum = r => r.reduce((a, n) => a + n.area, 0);
+  const worst = (r, side) => { const s2 = sum(r), mx = Math.max(...r.map(n => n.area)), mn = Math.min(...r.map(n => n.area)); return Math.max(side * side * mx / (s2 * s2), s2 * s2 / (side * side * mn)); };
+  const flush = r => {
+    const s2 = sum(r);
+    if (w >= h) { const rw = s2 / h; let yy = y; r.forEach(n => { const nh = n.area / rw; out.push({ ...n, x, y: yy, w: rw, h: nh }); yy += nh; }); x += rw; w -= rw; }
+    else { const rh = s2 / w; let xx = x; r.forEach(n => { const nw = n.area / rh; out.push({ ...n, x: xx, y, w: nw, h: rh }); xx += nw; }); y += rh; h -= rh; }
+  };
+  while (queue.length) {
+    const side = Math.min(w, h), n = queue[0];
+    if (!row.length || worst(row.concat(n), side) <= worst(row, side)) { row.push(n); queue.shift(); } else { flush(row); row = []; }
+  }
+  if (row.length) flush(row);
+  return out;
+}
+// цвет блока по изменению цены: зелёный рост, красный падение, серый — без изменений
+function heat(p) {
+  if (p == null || Math.abs(p) < 0.05) return 'linear-gradient(145deg, #3b3f48, #2a2d34)';
+  const a = Math.min(Math.abs(p), 12) / 12, l = 24 + a * 20;
+  return p > 0 ? `linear-gradient(145deg, hsl(146 70% ${l + 7}%), hsl(150 75% ${l - 4}%))`
+               : `linear-gradient(145deg, hsl(358 78% ${l + 7}%), hsl(350 80% ${l - 5}%))`;
+}
+// пузыри: размер — вес v, расстановка спиралью от центра без наложений
+function packCircles(items, W, H) {
+  if (!items.length) return [];
+  const vmax = Math.max(...items.map(i => i.v)), vmin = Math.min(...items.map(i => i.v)), n = items.length;
+  // размер: смесь значения и места в рейтинге, чтобы первые были заметно крупнее последних даже при близких значениях
+  const sc = items.map((it, i) => 0.5 * (vmax > vmin ? (it.v - vmin) / (vmax - vmin) : 0) + 0.5 * (n > 1 ? 1 - i / (n - 1) : 1));
+  // рядами сверху вниз: самые крупные в первом ряду, самые мелкие в последнем; ряды по центру
+  const gap = 6;
+  for (let R = Math.min(W, H) * 0.46; R > 18; R *= 0.95) {
+    const rs = items.map((it, i) => Math.max(23, R * (0.3 + 0.7 * sc[i])));
+    const rows = []; let cur = [], w = 0;
+    rs.forEach((r, i) => {
+      const need = 2 * r + (cur.length ? gap : 0);
+      if (cur.length && w + need > W - 4) { rows.push(cur); cur = []; w = 0; }
+      w += 2 * r + (cur.length ? gap : 0); cur.push(i);
+    });
+    if (cur.length) rows.push(cur);
+    const hs = rows.map(row => 2 * Math.max(...row.map(i => rs[i])));
+    const total = hs.reduce((a, b) => a + b, 0) + gap * (rows.length - 1);
+    if (total > H - 4) continue;
+    const placed = []; let y = (H - total) / 2;
+    rows.forEach((row, k) => {
+      const rw = row.reduce((a, i) => a + 2 * rs[i], 0) + gap * (row.length - 1);
+      let x = (W - rw) / 2;
+      row.forEach(i => { placed.push({ ...items[i], r: rs[i], x: x + rs[i], y: y + hs[k] / 2 }); x += 2 * rs[i] + gap; });
+      y += hs[k] + gap;
+    });
+    return placed;
+  }
+  return [];
+}
+
+async function showMap() {
+  const id = mount(`<div>${topbar(T('title_map'))}${hubSeg('map')}
+    <div class="seg" id="mmode"><button class="rp" data-v="map">${T('mode_map')}</button><button class="rp" data-v="top">${T('mode_top')}</button></div>
+    <div class="seg seg-s" id="mper" style="margin-top:-2px">${PERIODS.map(k => `<button class="rp" data-v="${k}">${T('p_' + k)}</button>`).join('')}</div>
+    <div class="seg seg-s" id="msub"></div>
+    <div class="mnote" id="mnote"></div><div class="mmap" id="mmap"></div>
+    <div class="mlegend"><span>−10%</span><i></i><span>+10%</span></div></div>`);
+  bindHub();
+  giftsCache ||= await api('/gifts');
+  if (id !== viewId) return;
+  const box = $('#mmap');
+  let topList = [];
+  const bubbles = (items, W, H) => {  // 10 самых крупных: размер — вес v, цвет — изменение цены p
+    box.style.height = H + 'px';
+    const placed = packCircles(items, W, H);
+    if (!placed.length) { box.innerHTML = '<div class="empty" style="padding-top:90px">' + T('top_wait') + '</div>'; return; }
+    box.innerHTML = placed.map((n, i) => {
+      const d = n.r * 2, big = n.r >= 44, mid = n.r >= 34, sz = Math.max(26, Math.min(84, n.r * 0.95));
+      return `<div class="bub rp" data-k="${esc(n.key)}" style="left:${(n.x - n.r).toFixed(1)}px;top:${(n.y - n.r).toFixed(1)}px;width:${d.toFixed(1)}px;height:${d.toFixed(1)}px;background:${heat(n.p)};animation-delay:${i * 70}ms">
+        <img src="${n.src}" style="width:${sz}px;height:${sz}px" onerror="this.style.visibility='hidden'" decoding="async">
+        <em style="font-size:${n.r >= 60 ? 17 : n.r >= 40 ? 13.5 : n.r >= 30 ? 12 : 10.5}px">${n.p == null ? '—' : (n.p > 0 ? '+' : '') + (n.r >= 44 ? n.p.toFixed(2) : Math.abs(n.p) >= 10 ? Math.round(n.p) : +n.p.toFixed(1)) + '%'}</em></div>`;
+    }).join('');
+  };
+  const draw = async () => {
+    const isTop = mapMode === 'top';
+    document.querySelectorAll('#mper button').forEach(b => b.classList.toggle('on', b.dataset.v === mapPeriod));
+    document.querySelectorAll('#mmode button').forEach(b => b.classList.toggle('on', b.dataset.v === mapMode));
+    // второй ряд: для подарков — «Рост / Падение / Капа», для моделей — «Рост / Падение»
+    const subs = isTop ? ['up', 'down'] : ['up', 'down', 'cap'];
+    $('#msub').innerHTML = subs.map(k => `<button class="rp" data-v="${k}">${T(k === 'up' ? 'dir_up' : k === 'down' ? 'dir_down' : 'size_cap')}</button>`).join('');
+    const cur = isTop ? topDir : mapSize;
+    document.querySelectorAll('#msub button').forEach(b => {
+      b.classList.toggle('on', b.dataset.v === cur);
+      b.onclick = () => { if (isTop) topDir = b.dataset.v; else mapSize = b.dataset.v; draw(); };
+    });
+    $('#mnote').textContent = isTop ? T('note_top') : T('note_' + mapSize);
+    const W = Math.floor(view.clientWidth - 32), H = Math.round(W * 1.2);
+    if (!isTop) {
+      const rows = giftsCache.filter(g => g.cap_ton > 0).map(g => {
+        const p = g.changes ? g.changes[mapPeriod] : null, profit = p == null ? 0 : g.cap_ton * p / (100 + p);
+        return { g, p, profit };
+      });
+      let list;
+      if (mapSize === 'cap') list = rows.sort((x, y) => y.g.cap_ton - x.g.cap_ton);
+      else if (mapSize === 'down') list = rows.filter(r => r.p != null && r.p < 0).sort((x, y) => x.p - y.p);
+      else list = rows.filter(r => r.p != null && r.p > 0).sort((x, y) => y.p - x.p);
+      bubbles(list.slice(0, 10).map(r => ({
+        key: r.g.name, name: r.g.name, src: img_(r.g.name), p: r.p,
+        v: mapSize === 'cap' ? r.g.cap_ton : Math.abs(r.p),
+        line: mapSize === 'cap' ? fmtK(r.g.cap_ton) : (r.profit >= 0 ? '+' : '−') + fmtK(Math.abs(r.profit)),
+      })), W, H);
+      return;
+    }
+    box.style.height = '120px'; box.innerHTML = '<div class="empty" style="padding-top:40px">' + T('loading') + '</div>';
+    try { topList = await api(`/models/top?period=${mapPeriod}&dir=${topDir}&limit=10&by=pct`); } catch (e) { topList = []; }
+    if (id !== viewId || mapMode !== 'top') return;
+    bubbles(topList.map((m, i) => ({ key: String(i), name: m.name, src: mimg(m.gift, m.name), p: m.change, v: Math.abs(m.change),
+      line: (m.profit_ton >= 0 ? '+' : '−') + fmtK(Math.abs(m.profit_ton)) })), W, H);
+  };
+  box.onclick = e => {
+    const el = e.target.closest('[data-k]');
+    if (!el) return;
+    if (mapMode === 'top') openLb(topList.map(m => ({ gift: m.gift, m })), +el.dataset.k);
+    else navigate('models', el.dataset.k);
+  };
+  document.querySelectorAll('#mper button').forEach(b => b.onclick = () => { mapPeriod = b.dataset.v; draw(); });
+  document.querySelectorAll('#mmode button').forEach(b => b.onclick = () => {
+    mapMode = b.dataset.v;
+    if (mapMode === 'top' && mapPeriod === '1d') mapPeriod = '1w';  // дневная история по моделям ещё копится
+    draw();
+  });
+  draw();
+}
+
+/* ---------- Покупка: где дешевле ---------- */
+// Реферальные ссылки маркетов. У MRKT реферальной программы нет, поэтому обычная ссылка.
+const MARKETS = [
+  { id: 'portals', name: 'Portals', url: 'https://t.me/portals/market?startapp=k388eg', color: '#7b61ff' },
+  { id: 'mrkt', name: 'MRKT', url: 'https://t.me/mrkt', color: '#ff7a3d' },
+  { id: 'tonnel', name: 'Tonnel', url: 'https://t.me/tonnel_network_bot/gifts?startapp=profile_7308147004', color: '#1fb5a3' },
+];
+function openLink(url) {
+  try { if (tg?.openTelegramLink && /^https:\/\/t\.me\//.test(url)) tg.openTelegramLink(url); else window.open(url, '_blank'); }
+  catch (e) { window.open(url, '_blank'); }
+}
+// сколько штук модели существует: тираж подарка × доля модели (доля задана с точностью до 0.1%, поэтому число примерное)
+function modelCount(gift, m) {
+  const g = giftsCache?.find(x => x.name === gift), n = g && (g.upgraded || g.supply);
+  return n && m.rarity_permille > 0 ? ` · ~${fmtS(Math.round(n * m.rarity_permille / 1000))} ${T('pcs')}` : '';
+}
+let buyToken = 0;
+function openBuy(giftName, modelName) {
+  const g = giftsCache?.find(x => x.name === giftName), base = modelName ? {} : (g?.markets || {}), tok = ++buyToken;
+  const render = live => {
+    const lm = live?.markets || {};
+    // самый дешёвый маркет сверху; маркеты без цены внизу
+    const rows = MARKETS.map(m => ({ ...m, price: lm[m.id] ?? base[m.id] ?? null })).sort((a, b) => (a.price == null) - (b.price == null) || (a.price - b.price));
+    const best = rows.find(r => r.price != null);
+    const lots = (live?.items || []).slice(0, 5);
+    $('#sheet-panel').innerHTML = `<div class="sh-h"><div><div class="sh-t">${T('buy_title')}</div><div class="s" style="color:var(--mute)">${esc(giftName)}${modelName ? ' · ' + esc(modelName) : ''}</div></div>
+        <button id="sh-x" class="rp" aria-label="x">×</button></div>` +
+      rows.map(r => `<button class="mk rp ${r === best ? 'best' : ''}" data-u="${esc(r.url)}"><img class="mk-i" src="/m/${r.id}.jpg" alt="">
+        <span class="mk-n">${T('buy_on')} ${r.name}${r === best ? `<em>${T('best')}</em>` : ''}</span>
+        <span class="mk-p">${r.price != null ? fmt(r.price) + GEM : `<span class="fl" style="font-size:13px">${live ? T('no_lots') : T('no_price')}</span>`}</span></button>`).join('') +
+      (lots.length ? `<div class="lots-t">${T('lots')}${live.total ? ' · ' + live.total : ''}</div>` + lots.map(l => `<button class="lot rp" data-u="${esc(l.url)}">
+        <span class="lot-n">#${l.number}</span><span class="lot-d">${esc([modelName ? null : l.model, l.pattern, l.backdrop].filter(Boolean).join(' · '))}</span>
+        <span class="lot-m">${esc((MARKETS.find(m => m.id === l.market) || { name: l.market }).name)}</span><span class="lot-p">${fmt(l.price)}${GEM}</span></button>`).join('') : '') +
+      `<div class="sh-note">${live === undefined ? T('live_wait') : T(live?.ok ? 'buy_note_live' : 'buy_note')}</div>`;
+  };
+  render(null);
+  $('#sheet').classList.add('show'); hap();
+}
+$('#sheet').onclick = e => {
+  const mk = e.target.closest('.mk');
+  const mk2 = e.target.closest('.lot');
+  if (mk2) { hap(); openLink(mk2.dataset.u); return; }
+  if (mk) { hap(); openLink(mk.dataset.u); return; }
+  if (e.target.id === 'sheet' || e.target.closest('#sh-x')) $('#sheet').classList.remove('show');
+};
+
+/* ---------- Карточка модели с графиком ---------- */
+let lbList = [], lbIdx = 0, lbState = null, lbDays = 30;
+function openLb(list, idx) {
+  lbList = list; hapOk();
+  $('#lb').classList.add('show'); $('#lb').scrollTop = 0;
+  showLb(idx, 0);
+}
+function showLb(idx, dir) {
+  lbIdx = idx;
+  const { gift, m } = lbList[idx];
+  lbState = { gift, m };
+  $('#lb-fav').classList.toggle('on', U.isFav('model', gift, m.name));
+  const body = $('#lb-body'), im = $('#lb-img');
+  body.classList.remove('sl', 'sr'); void body.offsetWidth;  // перезапуск анимации сдвига
+  if (dir) body.classList.add(dir > 0 ? 'sl' : 'sr');
+  im.style.visibility = 'visible'; im.removeAttribute('src');
+  im.src = mimg(gift, m.name, true);
+  $('#lb-t').textContent = gift + ' · ' + m.name;
+  $('#lb-s').innerHTML = `${T('price_l')} <b>${fmt(m.floor_ton)} GRAM</b>${m.price_src === 'sale' ? ' (' + T('from_sale') + ')' : ''}` +
+    `<br>${T('rarity_c')} ${m.rarity_permille != null ? m.rarity_permille / 10 + '%' : '—'}${modelCount(gift, m)}`;
+  const many = lbList.length > 1;
+  $('#lb-pos').textContent = many ? `${idx + 1} / ${lbList.length}` : '';
+  $('#lb-prev').style.visibility = many && idx > 0 ? 'visible' : 'hidden';
+  $('#lb-next').style.visibility = many && idx < lbList.length - 1 ? 'visible' : 'hidden';
+  drawLb();
+}
+function lbStep(d) {
+  const n = lbIdx + d;
+  if (n < 0 || n >= lbList.length) { hap('rigid'); return; }  // дальше листать некуда
+  hap('light'); showLb(n, d);
+}
+async function drawLb() {
+  const { gift, m } = lbState, box = $('#lb-chart');
+  document.querySelectorAll('#lb-per button').forEach(b => b.classList.toggle('on', +b.dataset.v === lbDays));
+  box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('loading') + '</div>';
+  let h;
+  try { h = await api(`/gifts/${encodeURIComponent(gift)}/models/${encodeURIComponent(m.name)}/history?days=${Math.ceil(lbDays)}`); }
+  catch (e) { if (lbState.m === m) box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('chart_fail') + '</div>'; return; }
+  if (lbState.m !== m) return;  // пока грузилось, переключились на другую модель
+  const fl = cropHour(h.floors.map(p => ({ t: p.ts, v: p.price_ton })), lbDays), sl = cropHour(h.sales.map(p => ({ t: p.ts, v: p.price_ton })), lbDays);
+  if (fl.concat(sl).length < 2) { box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('chart_few') + '</div>'; return; }
+  box.innerHTML = chartSvg(fl, sl, 150) +
+    `<div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${fl.length > 1 && Math.max(...fl.map(p => p.v)) === Math.min(...fl.map(p => p.v)) ? T('flat') : ''}${fl.length > 1 ? T('leg_line') : ''}${sl.length ? T('leg_dots') : ''}</div>`;
+}
+// график с осями: подписи времени подбираются по длине периода (часы, дни, месяцы, годы)
+function chartSvg(fl, sl, H, cur) {
+  const all = fl.concat(sl, cur ? [cur] : []);
+  const t0 = Math.min(...all.map(p => p.t)), t1 = Math.max(...all.map(p => p.t));
+  let lo = Math.min(...all.map(p => p.v)), hi = Math.max(...all.map(p => p.v));
+  if (hi === lo) { lo *= 0.97; hi *= 1.03; }  // цена не менялась — шкала с запасом, линия по центру
+  const W = 340, L = 46, R = 10, T = 10, B = 24;
+  const x = t => L + (t1 === t0 ? .5 : (t - t0) / (t1 - t0)) * (W - L - R);
+  const y = v => T + (hi === lo ? .5 : 1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const span = (t1 - t0) / 86400;
+  const multiYear = new Date(t0 * 1000).getFullYear() !== new Date(t1 * 1000).getFullYear();  // год подписываем, только если график его пересекает
+  const tfmt = t => { const d = new Date(t * 1000);
+    return span <= 2 ? d.toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' })
+      : span <= 45 ? d.toLocaleDateString(LOC(), { day: 'numeric', month: 'short' })
+      : (LANG === 'ru' ? ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'][d.getMonth()]
+          : d.toLocaleDateString('en-US', { month: 'short' })) + (multiYear ? ' ' + d.getFullYear() : ''); };
+  const n = 4, ticks = Array.from({ length: n }, (_, i) => t0 + (t1 - t0) * i / (n - 1));
+  const grid = [lo, (lo + hi) / 2, hi].map(v => `<line x1="${L}" y1="${y(v).toFixed(1)}" x2="${W - R}" y2="${y(v).toFixed(1)}" stroke="#1f1f22"/>` +
+    `<text x="${L - 6}" y="${(y(v) + 4).toFixed(1)}" fill="#8a8a90" font-size="11" text-anchor="end">${fmtK(v)}</text>`).join('');
+  const xt = ticks.map((t, i) => `<line x1="${x(t).toFixed(1)}" y1="${T}" x2="${x(t).toFixed(1)}" y2="${H - B}" stroke="#151517"/>` +
+    `<text x="${x(t).toFixed(1)}" y="${H - 6}" fill="#8a8a90" font-size="11" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${tfmt(t)}</text>`).join('');
+  const line = fl.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
+  const dots = sl.map(p => `<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.6" fill="#2ecc71"/>`).join('');
+  const now = cur ? `<circle cx="${x(cur.t).toFixed(1)}" cy="${y(cur.v).toFixed(1)}" r="4.5" fill="#fff" stroke="#ff2fb9" stroke-width="2"/>` : '';
+  const gid = 'cg' + Math.random().toString(36).slice(2, 7);
+  const area = fl.length > 1 ? `<path d="${line}L${x(fl[fl.length - 1].t).toFixed(1)},${H - B}L${x(fl[0].t).toFixed(1)},${H - B}Z" fill="url(#${gid})"/>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff2fb9" stop-opacity=".28"/><stop offset="1" stop-color="#ff2fb9" stop-opacity="0"/></linearGradient></defs>${xt}${grid}${area}` +
+    `${fl.length > 1 ? `<path d="${line}" fill="none" stroke="#ff2fb9" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}${dots}${now}</svg>`;
+}
+document.querySelectorAll('#lb-per button').forEach(b => b.onclick = e => { e.stopPropagation(); lbDays = +b.dataset.v; drawLb(); });
+$('#lb-prev').onclick = e => { e.stopPropagation(); lbStep(-1); };
+$('#lb-next').onclick = e => { e.stopPropagation(); lbStep(1); };
+$('#lb-ctl').onclick = e => e.stopPropagation();
+$('#lb-close').onclick = () => $('#lb').classList.remove('show');
+$('#lb-fav').onclick = e => { e.stopPropagation(); U.toggle('model', lbState.gift, lbState.m.name); };
+$('#lb-buy').onclick = e => { e.stopPropagation(); openBuy(lbState.gift, lbState.m.name); };
+$('#lb').onclick = () => $('#lb').classList.remove('show');
+// свайп влево/вправо переключает модель; вертикальная прокрутка не мешает
+let swipe = null;
+$('#lb').addEventListener('touchstart', e => { const t = e.touches[0]; swipe = { x: t.clientX, y: t.clientY }; }, { passive: true });
+$('#lb').addEventListener('touchend', e => {
+  if (!swipe) return;
+  const t = e.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y; swipe = null;
+  if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) lbStep(dx < 0 ? 1 : -1);
+}, { passive: true });
+document.addEventListener('keydown', e => {
+  if (!$('#lb').classList.contains('show')) return;
+  if (e.key === 'ArrowLeft') lbStep(-1); else if (e.key === 'ArrowRight') lbStep(1); else if (e.key === 'Escape') $('#lb').classList.remove('show');
+});
+
+/* ---------- Капитализация ---------- */
+let capCur = 'usd', capDays = 30;
+function countUp(el, to, f) {
+  const t0 = performance.now(), dur = 700;
+  const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3); el.textContent = f(to * e); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+async function showCap() {
+  const id = mount(`<div>${topbar(T('title_cap'))}
+    <div class="seg" id="cur"><button class="rp" data-v="usd">USD</button><button class="rp" data-v="gram">GRAM</button></div>
+    <div id="body"></div>
+    <div class="seg" id="per" style="margin-top:14px">${perBtns()}</div>${FOOT}</div>`);
+  const mark = () => {
+    document.querySelectorAll('#cur button').forEach(b => b.classList.toggle('on', b.dataset.v === capCur));
+    document.querySelectorAll('#per button').forEach(b => b.classList.toggle('on', +b.dataset.v === capDays));
+  };
+  const draw = async () => {
+    mark();
+    const d = await api('/marketcap?days=' + Math.ceil(capDays));
+    if (id !== viewId) return;
+    const pts = cropHour(d.points.map(p => ({ t: p.ts, v: capCur === 'usd' ? p.usd : p.ton })), capDays);
+    const cur = d.current ? (capCur === 'usd' ? d.current.usd : d.current.ton) : null;
+    const f = v => (capCur === 'usd' ? '$' : '') + fmtK(v) + (capCur === 'gram' ? ' GRAM' : '');
+    $('#body').innerHTML = `<div class="big" id="bigv">${cur == null ? '—' : f(cur)}</div>
+      <div class="s" style="color:var(--mute);font-size:13px">${T('cap_note')}</div>` +
+      (pts.length > 1 ? `<div style="margin-top:10px">${chartSvg(pts, [], 230)}</div>`
+        : '<div class="empty">' + T('cap_wait') + '</div>');
+    if (cur != null) countUp($('#bigv'), cur, f);
+  };
+  document.querySelectorAll('#cur button').forEach(b => b.onclick = () => { capCur = b.dataset.v; draw(); });
+  document.querySelectorAll('#per button').forEach(b => b.onclick = () => { capDays = +b.dataset.v; draw(); });
+  draw();
+}
+// статичные подписи (нижнее меню, карточка модели) и переключение языка
+function applyStaticLang() {
+  document.documentElement.lang = LANG;
+  [['tab-gifts', 'nav_gifts'], ['tab-cap', 'nav_cap'], ['tab-profile', 'nav_profile'], ['lb-close', 'back'], ['lb-buy', 'buy']].forEach(([id, k]) => { $('#' + id).lastChild.textContent = T(k); });
+  $('#back-fab').setAttribute('aria-label', T('back')); $('#up').setAttribute('aria-label', T('up'));
+  $('#lb-per').innerHTML = perBtns();
+  document.querySelectorAll('#lb-per button').forEach(b => b.onclick = e => { e.stopPropagation(); lbDays = +b.dataset.v; drawLb(); });
+}
+function setLang(l) {
+  LANG = l; try { localStorage.setItem('lang', l); } catch (e) {}
+  hap(); applyStaticLang();
+  restoreState = { scroll: view.scrollTop, q: $('#q')?.value || '' };  // перерисовываем экран на месте: прокрутка и поиск сохраняются
+  routes[cur.name](cur.arg);
+  if ($('#lb').classList.contains('show')) showLb(lbIdx, 0);
+}
+document.addEventListener('click', e => { if (e.target.closest('#lang')) setLang(LANG === 'ru' ? 'en' : 'ru'); });
+
+/* ---------- Данные пользователя: избранное, портфель, уведомления ----------
+   В Telegram — на сервере (вход по подписанному initData), вне Telegram — только в localStorage (для проверки в браузере). */
+const WALLET = 'UQAgX7QqhUKcEfW-7C4e2Z9x_A6iIvsDZJ9zI05H96-wvmPK', USDT_JETTON = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+const U = {
+  auth: !!tg?.initData, me: { favs: [], portfolio: [], alerts: [] }, ready: false,
+  req(method, path, body) {
+    return fetch('/api' + path, { method, headers: { 'Content-Type': 'application/json', 'X-Init-Data': tg.initData }, body: body ? JSON.stringify(body) : undefined })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  },
+  save() { try { localStorage.setItem('me', JSON.stringify(this.me)); } catch (e) {} },
+  async load() {
+    try {
+      if (this.auth) this.me = await this.req('GET', '/me');
+      else this.me = JSON.parse(localStorage.getItem('me') || 'null') || this.me;
+    } catch (e) {}
+    this.ready = true; this.stars();
+  },
+  isFav(kind, gift, model = '') { return this.me.favs.some(f => f.kind === kind && f.gift === gift && (f.model || '') === (model || '')); },
+  async toggle(kind, gift, model = '') {
+    const on = !this.isFav(kind, gift, model);
+    this.me.favs = on ? [{ kind, gift, model }, ...this.me.favs] : this.me.favs.filter(f => !(f.kind === kind && f.gift === gift && (f.model || '') === (model || '')));
+    this.stars(); hap(); this.save();
+    if (this.auth) try { await this.req('POST', '/fav', { kind, gift, model }); } catch (e) { this.load(); }
+  },
+  async hold(gift, model, qty) {
+    const rest = this.me.portfolio.filter(h => !(h.gift === gift && (h.model || '') === (model || '')));
+    this.me.portfolio = qty > 0 ? [...rest, { gift, model, qty }] : rest; this.save();
+    if (this.auth) try { await this.req('POST', '/portfolio', { gift, model, qty }); } catch (e) { this.load(); }
+  },
+  async addAlert(gift, model, cond, value) {
+    if (!this.auth) return false;
+    try { await this.req('POST', '/alerts', { gift, model, cond, value }); this.me = await this.req('GET', '/me'); return true; } catch (e) { return false; }
+  },
+  async delAlert(id) { this.me.alerts = this.me.alerts.filter(a => a.id !== id); try { await this.req('DELETE', '/alerts/' + id); } catch (e) {} },
+  stars() {  // обновляем все звёзды на экране
+    document.querySelectorAll('#fav').forEach(b => b.classList.toggle('on', this.isFav(b.dataset.k, b.dataset.g, b.dataset.m)));
+    if (lbState) $('#lb-fav')?.classList.toggle('on', this.isFav('model', lbState.gift, lbState.m.name));
+  },
+};
+document.addEventListener('click', e => { const b = e.target.closest('#fav'); if (b) U.toggle(b.dataset.k, b.dataset.g, b.dataset.m); });
+
+// простая форма в нижней шторке (используем окно #sheet)
+function openForm(title, bodyHtml, onReady) {
+  $('#sheet-panel').innerHTML = `<div class="sh-h"><div class="sh-t">${title}</div><button id="sh-x" class="rp" aria-label="x">×</button></div>${bodyHtml}`;
+  $('#sheet').classList.add('show'); onReady?.();
+}
+const closeForm = () => $('#sheet').classList.remove('show');
+const mpCache = {};  // модели подарка с ценами
+const modelsOf = async g => (mpCache[g] ||= await api('/gifts/' + encodeURIComponent(g) + '/models'));
+const priceOf = (g, model, rows) => {
+  if (model) return rows?.find(m => m.name === model)?.floor_ton ?? null;
+  return giftsCache.find(x => x.name === g)?.floor_ton ?? null;
+};
+let profTab = 'favs', profFav = 'gift';
+async function showProfile() {
+  const id = mount(`<div>${topbar(T('nav_profile'))}<div id="pf-hero"></div>
+    <div class="tiles"><button class="tile tdn rp" id="tl-donate"><span class="tic"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.3A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.6c0 5.7-7.5 10.3-7.5 10.3z"/></svg></span><b>${T('pf_donate')}</b></button>
+    <button class="tile tsh rp" id="tl-share"><span class="tic"><img src="/m/share.png" alt=""></span><b>${T('share_t')}</b></button></div>
+    <div class="seg seg-s" id="pf-tabs">${['favs', 'port', 'alerts'].map(k => `<button class="rp" data-v="${k}">${T('pf_' + k)}</button>`).join('')}</div>
+    <div id="pf-body"><div class="empty">${T('loading')}</div></div></div>`);
+  giftsCache ||= await api('/gifts');
+  if (!U.ready) await U.load();
+  if (id !== viewId) return;
+  $('#tl-share').onclick = () => { hap(); shareSheet(); };
+  $('#tl-donate').onclick = () => { hap(); openForm(T('pf_donate'), '<div id="dn-body"></div>', () => drawDonate($('#dn-body'))); };
+  drawHero(id);
+  const body = $('#pf-body');
+  const draw = () => {
+    document.querySelectorAll('#pf-tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === profTab));
+    ({ favs: drawFavs, port: drawPort, alerts: drawAlerts })[profTab](body, id);
+  };
+  document.querySelectorAll('#pf-tabs button').forEach(b => b.onclick = () => { profTab = b.dataset.v; hap(); draw(); });
+  draw();
+  const rs = restoreState; restoreState = null;
+  if (rs) view.scrollTo({ top: rs.scroll, behavior: 'instant' });
+}
+// «Поделиться» из профиля: портфель, избранные модели, подарки или сэты уходят текстом со ссылкой на бота
+function shareOut(text) {
+  const url = BOT_LINK, full = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text.slice(0, 3500));
+  try { if (tg?.openTelegramLink) { tg.openTelegramLink(full); return; } } catch (e) {}
+  try { if (navigator.share) { navigator.share({ url, text }); return; } } catch (e) {}
+  window.open(full, '_blank');
+}
+async function shareSheet() {
+  const favs = k => U.me.favs.filter(f => f.kind === k), hs = U.me.portfolio;
+  const opts = [
+    { k: 'port', n: hs.length, t: T('sh_port') }, { k: 'model', n: favs('model').length, t: T('sh_models') },
+    { k: 'gift', n: favs('gift').length, t: T('sh_gifts') }, { k: 'set', n: favs('set').length, t: T('sh_sets') }, { k: 'app', n: -1, t: T('sh_app') },
+  ];
+  openForm(T('share_t'), `<div class="frm">${opts.map(o => `<button class="mk rp ${o.n === 0 ? 'dis' : ''}" data-k="${o.k}"><span class="mk-n">${o.t}</span><span class="mk-p">${o.n >= 0 ? o.n : ''}</span></button>`).join('')}</div><div class="sh-note">${T('sh_note')}</div>`, () => {
+    $('#sheet-panel').querySelectorAll('[data-k]').forEach(b => b.onclick = async e => {
+      e.stopPropagation(); if (b.classList.contains('dis')) return; hap();
+      const k = b.dataset.k, hd = T('sh_head');
+      let text = T('title_gifts') + ' — Gift Hub';
+      try {
+        if (k === 'port') {
+          await Promise.all([...new Set(hs.filter(h => h.model).map(h => h.gift))].map(g => modelsOf(g).catch(() => [])));
+          let total = 0;
+          const lines = hs.map(h => { const pr = priceOf(h.gift, h.model, mpCache[h.gift]); if (pr != null) total += pr * h.qty; return `• ${h.model ? h.model + ' (' + h.gift + ')' : h.gift} ×${h.qty}${pr != null ? ' — ' + fmt(pr * h.qty) + ' GRAM' : ''}`; });
+          text = `${T('sh_port_h')}
+${lines.join('\n')}
+${T('pf_total')}: ${fmt(total)} GRAM`;
+        } else if (k === 'model') {
+          await Promise.all([...new Set(favs('model').map(f => f.gift))].map(g => modelsOf(g).catch(() => [])));
+          text = `${T('sh_models_h')}
+` + favs('model').map(f => { const pr = priceOf(f.gift, f.model, mpCache[f.gift]); return `• ${f.model} (${f.gift})${pr != null ? ' — ' + fmt(pr) + ' GRAM' : ''}`; }).join('\n');
+        } else if (k === 'gift') {
+          text = `${T('sh_gifts_h')}
+` + favs('gift').map(f => { const g = giftsCache.find(x => x.name === f.gift); return `• ${f.gift}${g ? ' — ' + fmt(g.floor_ton) + ' GRAM' : ''}`; }).join('\n');
+        } else if (k === 'set') {
+          themesCache ||= await api('/themes');
+          text = `${T('sh_sets_h')}
+` + favs('set').map(f => { const t = themesCache.find(x => x.id === f.gift); return '• ' + (t ? (LANG === 'en' ? t.title_en || t.title : t.title) : f.gift); }).join('\n');
+        }
+      } catch (err) {}
+      closeForm(); shareOut(text);
+    });
+  });
+}
+async function drawHero(id) {
+  const u = tg?.initDataUnsafe?.user || {}, name = [u.first_name, u.last_name].filter(Boolean).join(' ') || T('pf_guest');
+  const hs = U.me.portfolio;
+  await Promise.all([...new Set(hs.filter(h => h.model).map(h => h.gift))].map(g => modelsOf(g).catch(() => [])));
+  if (id !== viewId) return;
+  const total = hs.reduce((a, h) => a + (priceOf(h.gift, h.model, mpCache[h.gift]) || 0) * h.qty, 0);
+  const initials = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const stat = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`;
+  $('#pf-hero').innerHTML = `<div class="hero"><div class="hero-top"><div class="ava">${u.photo_url ? `<img src="${esc(u.photo_url)}" alt="" onerror="this.remove()">` : ''}<i>${esc(initials || '?')}</i></div>
+      <div class="hero-n"><div class="nm">${esc(name)}</div><div class="un">${u.username ? '@' + esc(u.username) : 'Gift Hub'}</div></div></div>
+    <div class="stats">${stat(U.me.favs.length, T('pf_favs'))}${stat(hs.length, T('pf_positions'))}${stat(total ? fmtK(total) : '0', T('pf_value'))}</div></div></div>`;
+}
+const unfavBtn = f => `<button class="unfav rp" ${favAttr(f)} aria-label="x">${STAR}</button>`;
+async function drawFavs(body, id) {
+  body.innerHTML = `<div class="seg seg-s" id="pf-fsub">${['gift', 'model', 'set'].map(k => `<button class="rp ${k === profFav ? 'on' : ''}" data-v="${k}">${T('pf_f_' + k)} <i>${U.me.favs.filter(f => f.kind === k).length}</i></button>`).join('')}</div><div id="pf-list"></div>`;
+  document.querySelectorAll('#pf-fsub button').forEach(b => b.onclick = () => { profFav = b.dataset.v; hap(); drawFavs(body, id); });
+  const box = $('#pf-list'), items = U.me.favs.filter(f => f.kind === profFav);
+  if (!items.length) { box.innerHTML = `<div class="empty">${T('pf_fav_empty')}</div>`; return; }
+  if (profFav === 'gift') {
+    box.innerHTML = items.map(f => { const g = giftsCache.find(x => x.name === f.gift); if (!g) return '';
+      return `<div class="row rp" data-g="${esc(g.name)}">${imgTag(img(g.name))}<div class="t"><div class="n">${esc(g.name)}</div><div class="s">${g.upgraded ? '~' + fmtS(g.upgraded) : ''}</div></div><div class="p">${fmt(g.floor_ton)}${GEM}<small>${chg(giftChange(g))}</small></div>${unfavBtn(f)}</div>`; }).join('');
+    box.onclick = e => { if (e.target.closest('.unfav')) return unfavClick(e, body, id); const el = e.target.closest('[data-g]'); if (el) navigate('models', el.dataset.g); };
+  } else if (profFav === 'model') {
+    const gs = [...new Set(items.map(f => f.gift))];
+    await Promise.all(gs.map(g => modelsOf(g).catch(() => [])));
+    if (id !== viewId) return;
+    const list = items.map(f => ({ f, m: mpCache[f.gift]?.find(x => x.name === f.model) })).filter(x => x.m);
+    box.innerHTML = list.map(({ f, m }, i) => `<div class="row rp" data-i="${i}">${imgTag(mimg(f.gift, m.name))}<div class="t"><div class="n">${esc(m.name)}</div><div class="s">${esc(f.gift)}</div></div><div class="p">${fmt(m.floor_ton)}${GEM}</div>${unfavBtn(f)}</div>`).join('');
+    box.onclick = e => { if (e.target.closest('.unfav')) return unfavClick(e, body, id); const el = e.target.closest('[data-i]'); if (el) openLb(list.map(x => ({ gift: x.f.gift, m: x.m })), +el.dataset.i); };
+  } else {
+    themesCache ||= await api('/themes');
+    if (id !== viewId) return;
+    box.innerHTML = items.map(f => { const t = themesCache.find(x => x.id === f.gift); if (!t) return '';
+      const sm = t.samples[0];
+      return `<div class="row rp" data-t="${esc(t.id)}">${sm ? imgTag(mimg(sm.gift, sm.model)) : ''}<div class="t"><div class="n">${esc(LANG === 'en' ? t.title_en || t.title : t.title)}</div><div class="s">${t.count} ${T('models_w')}</div></div>${unfavBtn(f)}</div>`; }).join('');
+    box.onclick = e => { if (e.target.closest('.unfav')) return unfavClick(e, body, id); const el = e.target.closest('[data-t]'); if (el) navigate('theme', el.dataset.t); };
+  }
+}
+function unfavClick(e, body, id) { const b = e.target.closest('.unfav'); U.toggle(b.dataset.k, b.dataset.g, b.dataset.m); drawFavs(body, id); }
+
+async function drawPort(body, id) {
+  const hs = U.me.portfolio;
+  await Promise.all([...new Set(hs.filter(h => h.model).map(h => h.gift))].map(g => modelsOf(g).catch(() => [])));
+  if (id !== viewId) return;
+  let total = 0, prev = 0;
+  const rows = hs.map(h => {
+    const g = giftsCache.find(x => x.name === h.gift), price = priceOf(h.gift, h.model, mpCache[h.gift]), val = price != null ? price * h.qty : null, ch = g ? giftChange(g) : null;
+    if (val != null) { total += val; prev += ch != null ? val / (1 + ch / 100) : val; }
+    return { h, price, val };
+  }).sort((a, b) => (b.val || 0) - (a.val || 0));
+  const diff = prev ? (total / prev - 1) * 100 : null;
+  body.innerHTML = `<div class="pcard"><div class="s" style="color:var(--mute)">${T('pf_total')}</div><div class="gprice" style="margin-top:2px">${fmt(total)} GRAM</div><div class="s">${diff != null && rows.length ? chg(+diff.toFixed(2)) + ' <span style="color:var(--mute)">' + T('p_' + giftPeriod) + '</span>' : ''}</div></div>
+    <button class="buy rp" id="pf-add" style="margin-bottom:12px">${T('pf_add')}</button>
+    ${rows.length ? '' : `<div class="empty">${T('pf_port_empty')}</div>`}
+    ${rows.map(({ h, price, val }, i) => `<div class="row" data-i="${i}">${imgTag(h.model ? mimg(h.gift, h.model) : img(h.gift))}<div class="t"><div class="n">${esc(h.model || h.gift)}</div><div class="s">${h.model ? esc(h.gift) + ' · ' : ''}${fmt(price)}${GEM}</div>
+      <div class="qty"><button class="rp" data-a="-">−</button><b>${h.qty}</b><button class="rp" data-a="+">+</button></div></div><div class="p">${fmt(val)}${GEM}</div><button class="unfav rp" data-del="1" aria-label="x">×</button></div>`).join('')}`;
+  body.onclick = e => {
+    const row = e.target.closest('[data-i]'); if (!row) return; hap(); const r = rows[+row.dataset.i];
+    if (e.target.closest('[data-del]')) U.hold(r.h.gift, r.h.model, 0).then(() => drawPort(body, id));
+    else if (e.target.closest('[data-a]')) U.hold(r.h.gift, r.h.model, Math.max(0, r.h.qty + (e.target.closest('[data-a]').dataset.a === '+' ? 1 : -1))).then(() => drawPort(body, id));
+  };
+  $('#pf-add').onclick = () => holdingForm(() => drawPort(body, id));
+}
+function giftOptions(sel) { return giftsCache.slice().sort((a, b) => a.name.localeCompare(b.name)).map(g => `<option ${g.name === sel ? 'selected' : ''} value="${esc(g.name)}">${esc(g.name)}</option>`).join(''); }
+async function fillModelSelect(sel, gift, any) {
+  sel.innerHTML = `<option value="">${any}</option>`;
+  try { (await modelsOf(gift)).slice().sort((a, b) => a.name.localeCompare(b.name)).forEach(m => sel.insertAdjacentHTML('beforeend', `<option value="${esc(m.name)}">${esc(m.name)}</option>`)); } catch (e) {}
+}
+function holdingForm(done) {
+  openForm(T('pf_add'), `<div class="frm"><select id="f-g">${giftOptions('')}</select><select id="f-m"></select>
+    <input id="f-q" type="number" inputmode="decimal" min="1" step="1" value="1" placeholder="${T('pf_qty')}"><button class="buy rp" id="f-ok">${T('pf_save')}</button></div>`, () => {
+    const g = $('#f-g'), m = $('#f-m'); fillModelSelect(m, g.value, T('pf_whole'));
+    g.onchange = () => fillModelSelect(m, g.value, T('pf_whole'));
+    $('#f-ok').onclick = async () => { const q = Math.max(1, Math.round(+$('#f-q').value || 1)); await U.hold(g.value, m.value, (U.me.portfolio.find(h => h.gift === g.value && (h.model || '') === m.value)?.qty || 0) + q); closeForm(); done(); };
+  });
+}
+
+async function drawAlerts(body, id) {
+  const note = U.auth ? T('pf_al_note') : T('pf_al_tg');
+  const label = a => esc(a.model ? a.model + ' · ' + a.gift : a.gift);
+  const cond = a => a.cond === 'change' ? T('pf_c_change') + ' ' + a.value + '%' : (a.cond === 'below' ? T('pf_c_below') : T('pf_c_above')) + ' ' + fmt(a.value) + ' GRAM';
+  body.innerHTML = `<div class="s" style="color:var(--mute);margin:0 2px 12px">${note}</div>
+    <button class="buy rp" id="al-add" style="margin-bottom:12px">${T('pf_al_add')}</button>
+    ${U.me.alerts.length ? '' : `<div class="empty">${T('pf_al_empty')}</div>`}
+    ${U.me.alerts.map(a => `<div class="row"><div class="t"><div class="n">${label(a)}</div><div class="s">${cond(a)}</div></div><button class="unfav rp" data-del="${a.id}" aria-label="x">×</button></div>`).join('')}`;
+  body.onclick = async e => { const d = e.target.closest('[data-del]'); if (d) { hap(); await U.delAlert(+d.dataset.del); drawAlerts(body, id); } };
+  $('#al-add').onclick = () => {
+    if (!U.auth) { try { tg?.showAlert?.(T('pf_al_tg')); } catch (e) {} return; }
+    openForm(T('pf_al_add'), `<div class="frm"><select id="a-g">${giftOptions('')}</select><select id="a-m"></select>
+      <select id="a-c"><option value="below">${T('pf_c_below')}</option><option value="above">${T('pf_c_above')}</option><option value="change">${T('pf_c_change')}</option></select>
+      <input id="a-v" type="number" inputmode="decimal" step="any" min="0" placeholder="${T('pf_al_val')}"><button class="buy rp" id="a-ok">${T('pf_save')}</button></div>`, () => {
+      const g = $('#a-g'), m = $('#a-m'); fillModelSelect(m, g.value, T('pf_whole')); g.onchange = () => fillModelSelect(m, g.value, T('pf_whole'));
+      $('#a-ok').onclick = async () => { const v = +$('#a-v').value; if (!(v > 0)) return; const ok = await U.addAlert(g.value, m.value, $('#a-c').value, v); closeForm(); if (ok) drawAlerts(body, id); };
+    });
+  };
+}
+
+function drawDonate(body) {
+  const amts = [50, 100, 250, 500, 1000];
+  body.innerHTML = `<div class="pcard"><div class="n" style="font-size:17px;font-weight:800">${T('dn_title')}</div><div class="s" style="color:var(--mute);margin-top:4px">${T('dn_text')}</div></div>
+    <div class="lots-t">${T('dn_stars')}</div>
+    <div class="seg seg-s" id="dn-amts">${amts.map(a => `<button class="rp" data-v="${a}">${a}</button>`).join('')}</div>
+    <div class="frm" style="margin-top:8px"><input id="dn-v" type="number" inputmode="numeric" min="1" max="10000" step="1" value="100" placeholder="${T('dn_amount')}"><button class="buy rp" id="dn-go">${T('dn_send')}</button></div>
+    <div class="lots-t">${T('dn_crypto')}</div>
+    <div class="pcard"><div class="s" style="color:var(--mute)">${T('dn_addr')}</div><div class="addr" id="dn-addr">${WALLET}</div><button class="rp cpy" id="dn-copy">${T('dn_copy')}</button></div>
+    <div class="frm"><button class="buy rp" data-ton="gram">${T('dn_gram')}</button><button class="buy rp alt" data-ton="usdt">${T('dn_usdt')}</button></div>
+    <div class="sh-note">${T('dn_note')}</div>`;
+  document.querySelectorAll('#dn-amts button').forEach(b => b.onclick = () => { $('#dn-v').value = b.dataset.v; hap(); });
+  $('#dn-go').onclick = async () => {
+    const n = Math.round(+$('#dn-v').value); if (!(n >= 1 && n <= 10000)) return; hap();
+    try {
+      const r = await fetch('/api/donate/stars', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: n }) }).then(r => r.json());
+      if (r.link && tg?.openInvoice) tg.openInvoice(r.link, st => { if (st === 'paid') { hapOk(); try { tg.showAlert(T('dn_thanks')); } catch (e) {} } });
+      else if (r.link) window.open(r.link, '_blank');
+    } catch (e) {}
+  };
+  $('#dn-copy').onclick = async () => { hap(); try { await navigator.clipboard.writeText(WALLET); $('#dn-copy').textContent = T('dn_copied'); setTimeout(() => $('#dn-copy') && ($('#dn-copy').textContent = T('dn_copy')), 1500); } catch (e) {} };
+  body.onclick = e => { const b = e.target.closest('[data-ton]'); if (!b) return; hap();
+    const url = 'ton://transfer/' + WALLET + (b.dataset.ton === 'usdt' ? '?jetton=' + USDT_JETTON : '');
+    try { window.open(url, '_blank'); } catch (err) { location.href = url; } };
+}
+
+// «Поделиться»: ссылка на бота с параметром, по которому приложение открывается сразу на нужном экране
+const BOT_LINK = 'https://t.me/gift20bot';
+function sharePayload() {
+  if (cur.name === 'models' && cur.arg) return { p: 'g_' + short(cur.arg), text: cur.arg };
+  if (cur.name === 'theme' && cur.arg) return { p: 't_' + cur.arg, text: (themesCache?.find(t => t.id === cur.arg)?.[LANG === 'en' ? 'title_en' : 'title']) || cur.arg };
+  return { p: '', text: T('title_gifts') };
+}
+function shareCurrent() {
+  const { p, text } = sharePayload(), url = BOT_LINK + (p ? '?start=' + p : '');
+  hap();
+  const full = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text + ' — Gift Hub');
+  try { if (tg?.openTelegramLink) { tg.openTelegramLink(full); return; } } catch (e) {}
+  try { if (navigator.share) { navigator.share({ url, text }); return; } } catch (e) {}
+  window.open(full, '_blank');
+}
+document.addEventListener('click', e => { if (e.target.closest('#share')) shareCurrent(); });
+async function openDeepLink(sp) {
+  try {
+    giftsCache ||= await api('/gifts');
+    if (sp.startsWith('g_')) { const g = giftsCache.find(x => short(x.name) === sp.slice(2)); if (g) { navigate('models', g.name); return; } }
+    if (sp.startsWith('t_')) { themesCache ||= await api('/themes'); if (themesCache.find(t => t.id === sp.slice(2))) navigate('theme', sp.slice(2)); }
+  } catch (e) {}
+}
+applyStaticLang();
+showGifts();
+U.load();
+try { const sp = tg?.initDataUnsafe?.start_param || new URLSearchParams(location.search).get('s'); if (sp) openDeepLink(sp); } catch (e) {}
+</script>
+</body>
+</html>
