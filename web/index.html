@@ -446,7 +446,7 @@ async function showGifts() {
   const giftRow = (g, i, anim) => `
     <div class="row rp ${anim ? 'anim' : ''}" data-g="${esc(g.name)}" ${stagger(i)}>
       ${imgTag(img(g.name))}
-      <div class="t"><div class="n">${esc(g.name)}</div><div class="s">${g.upgraded ? '~' + fmtS(g.upgraded) : g.supply != null ? fmtS(g.supply) : g.models + ' ' + T('mod_short')}</div></div>
+      <div class="t"><div class="n">${esc(g.name)}</div><div class="s">${g.upgraded ? fmtS(g.upgraded) : g.supply != null ? fmtS(g.supply) : g.models + ' ' + T('mod_short')}</div></div>
       <div class="p">${fmt(g.floor_ton)}${GEM}<small>${chg(giftChange(g))}</small></div></div>`;
   const draw = () => {
     const q = $('#q').value.toLowerCase();
@@ -484,7 +484,7 @@ let gcDays = 30;
 function giftHead(gift) {
   const g = giftsCache?.find(x => x.name === gift);
   const info = g ? `<div class="gprice">${fmt(g.floor_ton)}${GEM} <span class="s">${chg(giftChange(g))}</span></div>
-    <div class="s" style="color:var(--mute);margin:2px 0 12px">${T('supply')} ${g.upgraded ? '~' + fmtS(g.upgraded) + (g.supply ? ' / ' + fmtS(g.supply) : '') : g.supply != null ? fmtS(g.supply) : '—'}${g.cap_ton != null ? ' · ' + T('cap_w') + ' ' + fmtK(g.cap_ton) + ' GRAM' : ''}</div>` : '';
+    <div class="s" style="color:var(--mute);margin:2px 0 12px">${T('supply')} ${g.upgraded ? fmtS(g.upgraded) + (g.supply ? ' / ' + fmtS(g.supply) : '') : g.supply != null ? fmtS(g.supply) : '—'}${g.cap_ton != null ? ' · ' + T('cap_w') + ' ' + fmtK(g.cap_ton) + ' GRAM' : ''}</div>` : '';
   return `${info}<button class="buy rp" id="buy-gift">${T('buy')}</button><div class="gcard"><div id="gchart"><div class="empty" style="padding:30px">${T('loading')}</div></div>
     <div class="seg seg-s" id="gper2" style="margin:10px 0 0">${perBtns()}</div></div>`;
 }
@@ -590,7 +590,7 @@ async function showAllModels() {
   if (id !== viewId) return;
   const supply = Object.fromEntries(giftsCache.map(g => [g.name, g.upgraded || g.supply]));
   rows.forEach(m => { m.cap_ton = supply[m.gift] && m.rarity_permille > 0 && m.floor_ton != null ? supply[m.gift] * m.rarity_permille / 1000 * m.floor_ton : null; });
-  modelsView(rows, null, m => esc(m.gift) + (m.rarity_permille > 0 && supply[m.gift] ? ' · ~' + fmtS(Math.round(supply[m.gift] * m.rarity_permille / 1000)) + ' ' + T('pcs') : ''), T('models_tab'), true);
+  modelsView(rows, null, m => esc(m.gift) + (m.rarity_permille > 0 && supply[m.gift] ? ' · ' + fmtS(Math.round(supply[m.gift] * m.rarity_permille / 1000)) + ' ' + T('pcs') : ''), T('models_tab'), true);
 }
 async function showTheme(tid) {
   const id = viewId, d = await api('/themes/' + encodeURIComponent(tid) + '/models');
@@ -751,7 +751,7 @@ function openLink(url) {
 // сколько штук модели существует: тираж подарка × доля модели (доля задана с точностью до 0.1%, поэтому число примерное)
 function modelCount(gift, m) {
   const g = giftsCache?.find(x => x.name === gift), n = g && (g.upgraded || g.supply);
-  return n && m.rarity_permille > 0 ? ` · ~${fmtS(Math.round(n * m.rarity_permille / 1000))} ${T('pcs')}` : '';
+  return n && m.rarity_permille > 0 ? ` · ${fmtS(Math.round(n * m.rarity_permille / 1000))} ${T('pcs')}` : '';
 }
 let buyToken = 0;
 function openBuy(giftName, modelName) {
@@ -1066,7 +1066,7 @@ async function drawFavs(body, id) {
   if (!items.length) { box.innerHTML = `<div class="empty">${T('pf_fav_empty')}</div>`; return; }
   if (profFav === 'gift') {
     box.innerHTML = items.map(f => { const g = giftsCache.find(x => x.name === f.gift); if (!g) return '';
-      return `<div class="row rp" data-g="${esc(g.name)}">${imgTag(img(g.name))}<div class="t"><div class="n">${esc(g.name)}</div><div class="s">${g.upgraded ? '~' + fmtS(g.upgraded) : ''}</div></div><div class="p">${fmt(g.floor_ton)}${GEM}<small>${chg(giftChange(g))}</small></div>${unfavBtn(f)}</div>`; }).join('');
+      return `<div class="row rp" data-g="${esc(g.name)}">${imgTag(img(g.name))}<div class="t"><div class="n">${esc(g.name)}</div><div class="s">${g.upgraded ? fmtS(g.upgraded) : ''}</div></div><div class="p">${fmt(g.floor_ton)}${GEM}<small>${chg(giftChange(g))}</small></div>${unfavBtn(f)}</div>`; }).join('');
     box.onclick = e => { if (e.target.closest('.unfav')) return unfavClick(e, body, id); const el = e.target.closest('[data-g]'); if (el) navigate('models', el.dataset.g); };
   } else if (profFav === 'model') {
     const gs = [...new Set(items.map(f => f.gift))];
