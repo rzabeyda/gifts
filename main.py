@@ -10,7 +10,7 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI, HTTPException
 from PIL import Image
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 import caps
@@ -45,6 +45,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(collectors.run_forever(collectors.collect_marketcap_estimate, 60, "marketcap-est")),
         asyncio.create_task(collectors.run_forever(collectors.collect_floors, 300, "floors")),
         asyncio.create_task(collectors.run_forever(collectors.collect_peek, 900, "peek")),
+        asyncio.create_task(collectors.run_forever(collectors.collect_issued, 12 * 3600, "issued")),
         asyncio.create_task(collectors.run_forever(collectors.collect_sales, 30, "sales")),
         asyncio.create_task(collectors.run_forever(collectors.prewarm_images, 900, "images")),
         asyncio.create_task(cap_snapshots()),
@@ -57,6 +58,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.middleware("http")
+async def api_auth(request, call_next):
+    """API отдаётся только из мини-приложения: нужна подписанная Telegram строка initData (её проверяет HMAC токеном бота).
+    Служебный ключ DEV_API_KEY из окружения сервера нужен для проверок и нигде не публикуется."""
+    if request.url.path.startswith("/api/") and request.method != "OPTIONS":
+        dev = os.getenv("DEV_API_KEY", "")
+        if verify_init_data(request.headers.get("x-init-data", "")) is None and not (dev and hmac.compare_digest(request.headers.get("x-dev-key", ""), dev)):
+            from fastapi.responses import JSONResponse
+            return JSONResponse({"detail": "telegram auth required"}, status_code=401)
+    return await call_next(request)
 
 
 @app.middleware("http")
@@ -519,6 +532,231 @@ class AlertIn(BaseModel):
 LIMITS = {"favs": 300, "portfolio": 100, "alerts": 30}
 
 
+_mine_cache: dict = {}
+# Цена с учётом фона: самый дешёвый лот той же модели и с тем же фоном (открытый поиск peek.tg; редко, с общей очередью и паузами)
+_bd_price: dict = {}          # (подарок, модель, фон) -> (время, цена или None, если лотов нет)
+_bd_state = {"running": False, "cool": 0.0}
+BD_TTL = 3 * 3600
+
+
+async def fill_bd_prices(keys: list):
+    if _bd_state["running"] or time.time() < _bd_state["cool"]:
+        return
+    _bd_state["running"] = True
+    try:
+        async with httpx.AsyncClient(timeout=20) as c:
+            for gift, model, backdrop in keys:
+                params = {"name": re.sub(r"[^A-Za-z]", "", gift), "models": model, "backdrops": backdrop,
+                          "marketOnly": "true", "sortBy": "price", "sortOrder": "asc", "page": 1, "limit": 10}
+                r = await c.get("https://server.peek.tg/api/nft/gifts/search", params=params,
+                                headers={"Origin": "https://peek.tg", "Referer": "https://peek.tg/", "User-Agent": "Mozilla/5.0"})
+                if r.status_code in (403, 429) or r.status_code >= 500:
+                    _bd_state["cool"] = time.time() + 900  # закрыли или лимит: не трогаем 15 минут
+                    return
+                price = None
+                for x in r.json().get("results", []):
+                    mp = x.get("market") or {}
+                    if mp.get("asset") in (None, "TON") and isinstance(mp.get("price"), (int, float)):
+                        price = float(mp["price"])
+                        break
+                _bd_price[(gift, model, backdrop)] = (time.time(), price)
+                async with db.connect() as conn:
+                    await conn.execute("INSERT OR REPLACE INTO bd_prices VALUES (?,?,?,?,?)", (gift, model, backdrop, price, int(time.time())))
+                    await conn.commit()
+                await asyncio.sleep(2.2)  # лимит peek — 35 запросов в минуту, держим вдвое меньше
+    except Exception as e:
+        logging.warning("bd prices: %s", e)
+        _bd_state["cool"] = time.time() + 300
+    finally:
+        _bd_state["running"] = False
+
+
+@app.get("/api/my-gifts")
+async def api_my_gifts(request: Request):
+    """Подарки из профиля самого пользователя: официальный метод Bot API getUserGifts (без чужих аккаунтов).
+    Работает для тех, кто открыл бота; видны только подарки, которые показаны в профиле. Кэш 5 минут."""
+    uid = await current_user(request)
+    hit = _mine_cache.get(uid)
+    if hit and time.time() - hit["t"] < (20 if hit["v"].get("pending") else 300):
+        return hit["v"]
+    token = os.getenv("BOT_TOKEN", "")
+    items, total, offset = [], 0, ""
+    async with httpx.AsyncClient(timeout=25) as c:
+        for _ in range(6):  # до 600 подарков
+            r = (await c.post(f"https://api.telegram.org/bot{token}/getUserGifts",
+                              json={"user_id": uid, "limit": 100, "offset": offset, "exclude_unique": False})).json()
+            if not r.get("ok"):
+                logging.warning("getUserGifts: %s", r.get("description"))
+                break
+            res = r["result"]
+            total = res.get("total_count", total)
+            for x in res.get("gifts", []):
+                if x.get("type") != "unique":
+                    continue
+                g = x["gift"]
+                items.append({"gift": g.get("base_name"), "number": g.get("number"), "slug": g.get("name"),
+                              "model": (g.get("model") or {}).get("name"), "model_r": (g.get("model") or {}).get("rarity_per_mille"),
+                              "backdrop": (g.get("backdrop") or {}).get("name"), "backdrop_r": (g.get("backdrop") or {}).get("rarity_per_mille"),
+                              "symbol": (g.get("symbol") or {}).get("name")})
+            offset = res.get("next_offset") or ""
+            if not offset:
+                break
+            await asyncio.sleep(0.2)
+    col = {r["name"]: r for r in await q("SELECT name, center, edge FROM backdrops")}
+    for it in items:  # цвета фона подарка, чтобы показать его так же, как в Telegram
+        c = col.get(it["backdrop"])
+        it["c1"], it["c2"] = (c["center"], c["edge"]) if c else (None, None)
+    now_t = time.time()
+    if not _bd_state.get("loaded"):  # после перезапуска сервера поднимаем сохранённые цены, а не считаем заново
+        _bd_state["loaded"] = True
+        for r in await q("SELECT gift, model, backdrop, price, ts FROM bd_prices WHERE ts > ?", (int(now_t - BD_TTL),)):
+            _bd_price.setdefault((r["gift"], r["model"], r["backdrop"]), (r["ts"], r["price"]))
+    need = []
+    for it in items:
+        k = (it["gift"], it["model"], it["backdrop"])
+        hit = _bd_price.get(k)
+        it["price_exact"] = hit[1] if hit and now_t - hit[0] < BD_TTL else None
+        if (not hit or now_t - hit[0] >= BD_TTL) and it["model"] and it["backdrop"] and k not in need:
+            need.append(k)
+    if need:
+        asyncio.create_task(fill_bd_prices(need))
+    v = {"total": total, "items": items, "pending": len(need)}
+    _mine_cache[uid] = {"t": time.time(), "v": v}
+    return v
+
+
+# ---- «Поделиться»: карточка-картинка и готовое сообщение (Bot API savePreparedInlineMessage + Mini App shareMessage) ----
+_FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+_FONT_R = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+
+def _font(path: str, size: int):
+    from PIL import ImageFont
+    try:
+        return ImageFont.truetype(path, size)
+    except OSError:
+        try:
+            return ImageFont.truetype("arial.ttf", size)
+        except OSError:
+            return ImageFont.load_default()
+
+
+def _fit(draw, text: str, path: str, size: int, width: int):
+    while size > 22:
+        f = _font(path, size)
+        if draw.textlength(text, font=f) <= width:
+            return f
+        size -= 2
+    return _font(path, 22)
+
+
+def _load_img(kind: str, a: str, b: str = ""):
+    p = images.path_for(kind, a, b, False)
+    if p.exists():
+        try:
+            return Image.open(p).convert("RGBA")
+        except Exception:
+            return None
+    return None
+
+
+def render_card(title: str, sub: str, imgs: list) -> bytes:
+    """Картинка 1280x720: чёрный фон, розовое свечение, картинки слева, название и цена справа."""
+    from PIL import ImageDraw, ImageFilter
+    W, H = 1280, 720
+    bg = Image.new("RGB", (W, H), (5, 5, 8))
+    glow = Image.new("RGB", (W, H), (0, 0, 0))
+    gd = ImageDraw.Draw(glow)
+    gd.ellipse((-200, -250, 700, 500), fill=(120, 20, 95))
+    gd.ellipse((700, 300, 1500, 1000), fill=(70, 25, 120))
+    bg = Image.blend(bg, glow.filter(ImageFilter.GaussianBlur(160)), 0.55)
+    d = ImageDraw.Draw(bg)
+    d.rounded_rectangle((28, 28, W - 28, H - 28), radius=44, outline=(255, 255, 255), width=3)
+    imgs = [i for i in imgs if i is not None][:3]
+    if imgs:
+        if len(imgs) == 1:
+            im = imgs[0].resize((420, 420))
+            bg.paste(im, (90, 150), im)
+        else:
+            for k, im in enumerate(imgs):
+                im = im.resize((300, 300))
+                bg.paste(im, (60 + k * 150, 120 + (k % 2) * 140), im)
+    x0 = 560 if len(imgs) == 1 else 620
+    tw = W - x0 - 70
+    d.text((x0, 230), title, font=_fit(d, title, _FONT_B, 76, tw), fill=(255, 255, 255))
+    d.text((x0, 345), sub, font=_fit(d, sub, _FONT_R, 46, tw), fill=(255, 170, 230))
+    d.text((x0, 600), "Gift Hub  \u00b7  @gift20bot", font=_font(_FONT_B, 34), fill=(190, 190, 200))
+    buf = io.BytesIO()
+    bg.save(buf, "JPEG", quality=88)
+    return buf.getvalue()
+
+
+def _card_data(kind: str, key: str, lang: str, gifts_list: list, themes_out: list | None):
+    """-> (заголовок, подпись, список картинок, deep-link параметр)"""
+    ru = lang == "ru"
+    if kind == "g":
+        g = next((x for x in gifts_list if images.short(x["name"]) == key), None)
+        if not g:
+            raise HTTPException(404)
+        price = f"{g['floor_ton']:,.0f}".replace(",", " ") if (g.get("floor_ton") or 0) >= 100 else f"{(g.get('floor_ton') or 0):g}"
+        sub = f"{price} GRAM" + (f"  \u00b7  {int(g['upgraded']):,}".replace(",", " ") if g.get("upgraded") else "")
+        return g["name"], sub, [_load_img("g", images.short(g["name"]))], "g_" + key
+    if kind == "s":
+        t = next((x for x in (themes_out or []) if x["id"] == key), None)
+        if not t:
+            raise HTTPException(404)
+        title = t["title"] if ru else t.get("title_en") or t["title"]
+        sub = f"{t['count']} " + ("моделей" if ru else "models") + (f"  \u00b7  {t['floor_ton']:g} GRAM" if t.get("floor_ton") else "")
+        ims = [_load_img("m", images.short(s["gift"]), images.mfile(s["model"])) for s in t["samples"]]
+        return title, sub, ims, "t_" + key
+    raise HTTPException(404)
+
+
+@app.get("/card/{kind}/{key}.jpg")
+async def share_card(kind: str, key: str, lang: str = "ru"):
+    """Публичная картинка-карточка (её забирает сам Telegram)."""
+    if not re.fullmatch(r"[a-z0-9_\-]{1,64}", key) or kind not in ("g", "s"):
+        raise HTTPException(404)
+    gl = await gifts() if kind == "g" else []
+    th = (await api_themes()) if kind == "s" else None
+    title, sub, ims, _ = _card_data(kind, key, "en" if lang == "en" else "ru", gl, th)
+    return Response(render_card(title, sub, ims), media_type="image/jpeg", headers={"Cache-Control": "public, max-age=600"})
+
+
+class ShareIn(BaseModel):
+    kind: str
+    key: str
+    lang: str = "ru"
+
+
+@app.post("/api/share-prepare")
+async def api_share_prepare(body: ShareIn, request: Request):
+    """Готовое сообщение для окна «поделиться» внутри Telegram: картинка, название, цена и кнопка «Открыть»."""
+    uid = await current_user(request)
+    if body.kind not in ("g", "s") or not re.fullmatch(r"[a-z0-9_\-]{1,64}", body.key):
+        raise HTTPException(400, "bad request")
+    token = os.getenv("BOT_TOKEN", "")
+    base = os.getenv("WEBAPP_URL", "https://gifts.zabeyda.lol").rstrip("/")
+    lang = "en" if body.lang == "en" else "ru"
+    gl = await gifts() if body.kind == "g" else []
+    th = (await api_themes()) if body.kind == "s" else None
+    title, sub, _, start = _card_data(body.kind, body.key, lang, gl, th)
+    result = {"type": "photo", "id": hashlib.sha1(f"{body.kind}{body.key}{lang}".encode()).hexdigest()[:24],
+              "photo_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}", "thumbnail_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}",
+              "photo_width": 1280, "photo_height": 720, "title": title, "description": sub,
+              "caption": f"{title}\n{sub}",
+              "reply_markup": {"inline_keyboard": [[{"text": "Открыть" if lang == "ru" else "Open", "url": f"https://t.me/gift20bot?start={start}"}]]}}
+    async with httpx.AsyncClient(timeout=20) as c:
+        r = await c.post(f"https://api.telegram.org/bot{token}/savePreparedInlineMessage",
+                         json={"user_id": uid, "result": result, "allow_user_chats": True, "allow_bot_chats": False,
+                               "allow_group_chats": True, "allow_channel_chats": True})
+    j = r.json()
+    if not j.get("ok"):
+        logging.warning("savePreparedInlineMessage: %s", j.get("description"))
+        raise HTTPException(502, "telegram error")
+    return {"id": j["result"]["id"]}
+
+
 @app.get("/api/me")
 async def api_me(request: Request):
     uid = await current_user(request)
@@ -667,9 +905,7 @@ async def api_donate_stars(body: StarsIn):
 _all_models_cache: dict = {"t": 0.0, "v": None}
 
 
-@app.get("/api/models/all")
-async def api_models_all():
-    """Все модели всех подарков (для вкладки «Модели» в «Гифтах»), кэш 60 с."""
+async def all_models() -> list:
     if _all_models_cache["v"] is not None and time.time() - _all_models_cache["t"] < 60:
         return _all_models_cache["v"]
     eff = await effective_floors()
@@ -680,6 +916,28 @@ async def api_models_all():
     out.sort(key=lambda x: (x["floor_ton"] is None, x["floor_ton"] or 0, x["name"]))
     _all_models_cache.update(t=time.time(), v=out)
     return out
+
+
+@app.get("/api/models/all")
+async def api_models_all():
+    """Все модели всех подарков, кэш 60 с."""
+    return await all_models()
+
+
+@app.get("/api/models/price")
+async def api_models_price(dir: str = "desc", limit: int = 100, q: str = ""):
+    """Самые дорогие (dir=desc) или самые дешёвые (dir=asc) модели; не больше limit штук, чтобы грузилось быстро."""
+    limit = max(1, min(limit, 200))
+    words = [w for w in q.lower().split() if w][:5]
+    rows = [r for r in await all_models() if r["floor_ton"] is not None and all(w in (r["name"] + " " + r["gift"]).lower() for w in words)]
+    rows.sort(key=lambda r: r["floor_ton"], reverse=(dir != "asc"))
+    return rows[:limit]
+
+
+@app.get("/api/backdrops")
+async def api_backdrops():
+    """Фоны подарков: цвета и средняя редкость (в промилле); самые редкие первыми."""
+    return await q("SELECT name, center, edge, pattern, text, rarity_avg, gifts FROM backdrops ORDER BY rarity_avg, name")
 
 
 _mc_cache: dict = {"t": 0.0, "v": None}
@@ -737,7 +995,7 @@ async def model_changes() -> dict:
 
 
 @app.get("/api/models/top")
-async def models_top(period: str = "1d", dir: str = "up", limit: int = 60, by: str = "pct"):
+async def models_top(period: str = "1d", dir: str = "up", limit: int = 60, by: str = "pct", fill: int = 0):
     """Модели с самым большим ростом (dir=up) или падением (dir=down) цены за период."""
     if period not in MC_PERIODS:
         raise HTTPException(400, "bad period")
@@ -750,7 +1008,7 @@ async def models_top(period: str = "1d", dir: str = "up", limit: int = 60, by: s
         upg = await collectors.upgraded_map(conn)
         cur = await conn.execute("SELECT g.name AS gift, s.total FROM gifts g JOIN supply s ON s.gift_id = g.gift_id")
         total = {r["gift"]: r["total"] for r in await cur.fetchall()}
-    out = []
+    out, rest = [], []
     for k, v in ch.items():
         pct = v.get(period)
         if pct is None or k not in rar or not rar[k] or abs(pct) > limit_pct:
@@ -760,15 +1018,21 @@ async def models_top(period: str = "1d", dir: str = "up", limit: int = 60, by: s
             continue
         price = v["price"]
         profit = (price - price / (1 + pct / 100)) * units  # прирост (убыток) капитализации модели за период
+        item = {"gift": k[0], "name": k[1], "floor_ton": price, "rarity_permille": rar[k], "change": pct,
+                "units": round(units), "profit_ton": profit}
         if (profit > 0) != (dir != "down"):
+            rest.append(item)  # не того знака: пригодится, только если нужно добрать до нужного числа
             continue
-        out.append({"gift": k[0], "name": k[1], "floor_ton": price, "rarity_permille": rar[k], "change": pct,
-                    "units": round(units), "profit_ton": profit})
+        out.append(item)
     if by == "pct":  # по проценту; модели, которых меньше 20 штук, отбрасываем — у них цена прыгает из-за одного лота
         out = [x for x in out if x["units"] >= 20]
         out.sort(key=lambda x: x["change"], reverse=(dir != "down"))
     else:
         out.sort(key=lambda x: x["profit_ton"], reverse=(dir != "down"))  # сверху — модели, заработавшие больше всех
+    if fill and len(out) < limit:  # добираем ближайшими к нужному знаку, чтобы пузырей всегда было нужное число
+        rest = [x for x in rest if x["units"] >= 20] if by == "pct" else rest
+        rest.sort(key=lambda x: x["change"] if by == "pct" else x["profit_ton"], reverse=(dir != "down"))
+        out += rest[: limit - len(out)]
     return out[: min(limit, 200)]
 
 

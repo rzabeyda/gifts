@@ -23,7 +23,7 @@ async def start(m: Message, command: CommandObject):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="Open", web_app=WebAppInfo(url=url))]]
     )
-    caption = "Мониторинг цен на Telegram-подарки"
+    caption = "Обзор Telegram NFT Подарков"
     if WELCOME.exists():
         await m.answer_photo(FSInputFile(WELCOME), caption=caption, reply_markup=kb)
     else:

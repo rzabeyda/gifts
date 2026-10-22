@@ -47,8 +47,21 @@ async def collect_catalog(client: httpx.AsyncClient) -> None:
                     "INSERT OR REPLACE INTO models VALUES (?,?,?)",
                     (g["name"], m["name"], m.get("rarityPermille")),
                 )
+        bd: dict[str, dict] = {}  # фоны: цвета (из первого упоминания) и редкость во всех коллекциях
+        for data in results:
+            if isinstance(data, Exception):
+                continue
+            for b in data.get("backdrops", []):
+                x = bd.setdefault(b["name"], {"hex": b.get("hex") or {}, "r": []})
+                if b.get("rarityPermille") is not None:
+                    x["r"].append(b["rarityPermille"])
+        for name, x in bd.items():
+            h = x["hex"]
+            await conn.execute("INSERT OR REPLACE INTO backdrops VALUES (?,?,?,?,?,?,?)",
+                               (name, h.get("centerColor"), h.get("edgeColor"), h.get("patternColor"), h.get("textColor"),
+                                sum(x["r"]) / len(x["r"]) if x["r"] else None, len(x["r"])))
         await conn.commit()
-    log.info("catalog: %d gifts", len(names))
+    log.info("catalog: %d gifts, %d backdrops", len(names), len(bd))
 
 
 async def collect_rates(client: httpx.AsyncClient) -> None:
@@ -85,6 +98,79 @@ async def collect_marketcap(client: httpx.AsyncClient) -> None:
 
 DATASET = "https://raw.githubusercontent.com/ssamy2/TelegramGiftsAssests/main"
 MARKET = "community"  # открытый датасет, обновляется автором раз в несколько дней
+
+
+_issued_first = [True]
+
+
+async def collect_issued(client: httpx.AsyncClient) -> None:
+    """Точное число улучшенных подарков: наибольший номер, для которого есть страница t.me/nft/<Имя>-<номер>.
+
+    Номера выдаются по порядку улучшения, поэтому максимальный существующий номер = число улучшенных. Страницы публичные,
+    вход в Telegram не нужен. Ищем от известной оценки (галоп + бинарный поиск, ~10 запросов на коллекцию), не чаще одного запроса
+    в 0,8 с. Запуск раз в 12 часов; при любом сбое сети коллекция пропускается и остаётся прежнее значение.
+    """
+    if _issued_first[0]:  # после старта сервера даём время основным сборщикам
+        _issued_first[0] = False
+        await asyncio.sleep(180)
+    headers = {}
+
+    async def exists(slug: str, n: int) -> bool:
+        # номер мог выбыть, поэтому «нет» только если нет и следующих двух
+        for k in range(3):
+            await asyncio.sleep(0.8)
+            r = await client.get(f"https://t.me/nft/{slug}-{n + k}", headers=headers, follow_redirects=True)
+            if r.status_code != 200:
+                raise RuntimeError(f"t.me status {r.status_code}")
+            if f'og:title" content="' in r.text and f"#{n + k}\"" in r.text:
+                return True
+        # «нет» могло быть и ограничением запросов (t.me тогда отдаёт общую страницу): проверяем контрольный номер 1
+        await asyncio.sleep(0.8)
+        r = await client.get(f"https://t.me/nft/{slug}-1", follow_redirects=True)
+        if r.status_code != 200 or "#1\"" not in r.text:
+            await asyncio.sleep(60)
+            raise RuntimeError("t.me throttled")
+        return False
+
+    async with db.connect() as conn:
+        names = [r["name"] for r in await (await conn.execute("SELECT name FROM gifts")).fetchall()]
+        prev = {r["gift"]: r["issued"] for r in await (await conn.execute("SELECT gift, issued FROM issued_exact")).fetchall()}
+        peek = {r["gift"]: r["issued"] for r in await (await conn.execute("SELECT gift, issued FROM peek WHERE issued > 0")).fetchall()}
+        est = await upgraded_map(conn)
+    done = 0
+    for name in names:
+        slug = re.sub(r"[^A-Za-z]", "", name)
+        hint = prev.get(name) or peek.get(name) or est.get(name) or 1000
+        try:
+            if await exists(slug, hint):
+                lo, step = hint, max(8, hint // 200)
+                hi = lo + step
+                while await exists(slug, hi):
+                    lo, step = hi, step * 2
+                    hi = lo + step
+            else:
+                hi, lo = hint, max(1, hint // 2)
+                while lo > 1 and not await exists(slug, lo):
+                    hi, lo = lo, max(1, lo // 2)
+            while hi - lo > 1:
+                mid = (lo + hi) // 2
+                if await exists(slug, mid):
+                    lo = mid
+                else:
+                    hi = mid
+        except Exception as e:  # сеть/ограничение: оставляем прежнее значение
+            log.warning("issued %s: %s", name, e)
+            continue
+        ref = prev.get(name) or peek.get(name) or est.get(name)
+        if ref and not (0.5 <= lo / ref <= 2):  # расходится с другими источниками в разы: скорее всего, ограничение запросов, а не данные
+            log.warning("issued %s: %s vs %s, skipped", name, lo, ref)
+            continue
+        if lo >= 1:
+            async with db.connect() as conn:
+                await conn.execute("INSERT OR REPLACE INTO issued_exact VALUES (?,?,?)", (name, lo, now()))
+                await conn.commit()
+            done += 1
+    log.info("issued_exact updated: %d/%d", done, len(names))
 
 
 async def collect_peek(client: httpx.AsyncClient) -> None:
@@ -204,6 +290,12 @@ async def upgraded_map(conn, min_n: int = 10) -> dict[str, int]:
     for r in await cur.fetchall():
         out[r["gift"]] = int(r["issued"])
     out.update(caps.UPGRADED_OVERRIDES)  # сверено с эталоном
+    # точный счёт по публичным страницам t.me/nft — приоритетнее всего (если не расходится с остальными в разы: значит, сбой)
+    cur = await conn.execute("SELECT gift, issued FROM issued_exact WHERE ts > ?", (now() - 3 * 86400,))
+    for r in await cur.fetchall():
+        old = out.get(r["gift"])
+        if not old or 0.5 <= r["issued"] / old <= 2:
+            out[r["gift"]] = int(r["issued"])
     return out
 
 

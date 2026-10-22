@@ -53,17 +53,13 @@ THEMES = [
      "cake*|cupcake*|pastry|pastries|eclair|macaron*|tart*|tiramisu|cheesecake|muffin*|donut*|brownie*|pie|strudel|"
      "croissant|cannoli|profiterole|waffle*", ["Homemade Cake", "Mousse Cake", "Whip Cupcake"]),
     ("watches", "Часы", "watch|clock|chrono*|hourglass|timer", ["Swiss Watch"]),
-    ("bags", "Сумки", "bag|handbag|purse|backpack|satchel|tote|clutch|pouch|sack", ["Loot Bag", "Swag Bag"]),
+    ("bags", "Сумки", "bag|handbag|purse|backpack|satchel|tote|clutch|pouch|sack", ["Loot Bag"]),
     ("rings", "Кольца", "ring|signet", ["Diamond Ring", "Signet Ring", "Gem Signet", "Bonded Ring"]),
     ("gems", "Камни", "diamond|crystal|jewel|gem|pearl|ruby|sapphire|emerald|treasure|crown",
      ["Diamond Ring", "Gem Signet", "Signet Ring", "Ion Gem"]),
     ("party", "Праздник", "party|disco|circus|clown|jester|birthday|confetti|carnival|balloon|festive|celebration",
      ["Party Sparkler", "Jester Hat", "B-Day Candle", "Jack-in-the-Box"]),
     ("pigeons", "Голуби", "pigeon|pigion|dove|columba", []),
-    ("rodents", "Грызуны", "capybara|capy|hamster|mouse|mice|rat|squirrel|beaver|gerbil|chinchilla|guinea pig|rodent", []),
-    ("pandas", "Панды", "panda", []),
-    ("horses", "Лошади", "horse|pony|unicorn|stallion|mustang|zebra|donkey|gigahorse|pegasus|horseman", []),
-    ("turtles", "Черепахи", "turtle|tortoise|donatello|leonardo|raphael|rafael|michelangelo|ninja mike", []),
     ("sea", "Море", "fish|shark|whale|dolphin|octopus|squid|crab|lobster|jellyfish|seahorse|sea horse|orca|seal|mermaid|goldfish|blobfish|devilfish|kraken|shrimp|salmon|starfish|clam|coral|koi|nemo|penguin|axolotl|piranha|walrus|otter", []),
     ("insects", "Насекомые", "bee|wasp|butterfly|ladybug|ladybird|spider|ant|beetle|moth|firefly|dragonfly|cricket|bug|bumble*|butterflight|butterflies|morpho|fireflies|hive|apiary|scarab|mantis|hornet", []),
     ("pigs", "Свинки", "pig|piggy|boar|hog", []),
@@ -92,7 +88,6 @@ THEMES = [
     ("sapphire", "Sapphire", "sapphire|sapphires|blue|navy|cobalt|indigo|denim", []),
     ("topaz", "Topaz", "topaz", []),
     ("black", "Black", "black|jet black|matte black", []),
-    ("chrome", "Chrome", "chrome|chromed|neo-chrome", []),
     ("rose", "Rose", "rose|roses|rosegold|pink|blush|bubblegum|fuchsia|magenta|barbie", []),
     ("diamond", "Diamond", "diamond|diamonds", []),
     ("red", "Red", "red", []),
@@ -100,10 +95,10 @@ THEMES = [
 
 # группы-фильтры вверху вкладки «Сэты»; всё, чего здесь нет, попадает в «other»
 GROUPS = {
-    "pets": ["pepe", "ducks", "cats", "dogs", "birds", "bears", "bunnies", "monkeys", "snakes", "dragons", "pigeons", "rodents", "pandas",
-             "horses", "turtles", "sea", "insects", "pigs"],
+    "pets": ["pepe", "ducks", "cats", "dogs", "birds", "bears", "bunnies", "monkeys", "snakes", "dragons", "pigeons",
+             "sea", "insects", "pigs"],
     "gems": ["gold", "gems", "ruby", "amethyst", "obsidian", "emerald", "silver", "sapphire", "topaz", "black",
-             "chrome", "rose", "diamond", "red", "yellow", "white", "platinum", "orange", "bronze", "brown", "rainbow", "aqua"],
+             "rose", "diamond", "red", "yellow", "white", "platinum", "orange", "bronze", "brown", "rainbow", "aqua"],
     "status": ["bags", "rings", "glasses", "cars", "watches", "cigars"],
 }
 GROUP_OF = {tid: g for g, ids in GROUPS.items() for tid in ids}
@@ -114,7 +109,7 @@ _ORDER["adult"] = (9, -1)  # 18+ первым среди остальных
 THEMES.sort(key=lambda t: _ORDER.get(t[0], (9, 0)))
 
 # отдельные модели, добавленные в тему вручную: тема -> {(подарок, модель)}
-INCLUDE = {"pepe": {("Liberty Figure", "Plushie")}, "obsidian": {("Spring Basket", "Nocturne")}}
+INCLUDE = {"pepe": {("Liberty Figure", "Plushie")}, "obsidian": {("Spring Basket", "Nocturne")}, "pigeons": {("Surge Board", "French Riviera")}}
 
 
 
@@ -134,9 +129,9 @@ TITLES_EN = {
     "gold": "Gold", "cigars": "Cigars", "cars": "Cars", "adult": "18+", "figures": "Figurines",
     "cakes": "Cakes", "watches": "Watches", "bags": "Bags", "rings": "Rings", "gems": "Gems", "party": "Party",
     "ruby": "Ruby", "amethyst": "Amethyst", "obsidian": "Obsidian", "emerald": "Emerald", "silver": "Silver",
-    "sapphire": "Sapphire", "topaz": "Topaz", "black": "Black", "chrome": "Chrome", "rose": "Rose",
+    "sapphire": "Sapphire", "topaz": "Topaz", "black": "Black", "rose": "Rose",
     "diamond": "Diamond", "red": "Red",
-    "pigeons": "Pigeons", "rodents": "Rodents & Capybaras", "pandas": "Pandas", "horses": "Horses", "turtles": "Turtles",
+    "pigeons": "Pigeons", 
     "sea": "Sea Life", "insects": "Insects", "pigs": "Pigs", "moon": "Moon", "yellow": "Yellow", "white": "White", "platinum": "Platinum", "orange": "Orange", "bronze": "Bronze",
     "brown": "Brown", "rainbow": "Rainbow", "aqua": "Aqua", "glasses": "Glasses", "eggs": "Eggs",
 }
@@ -156,11 +151,29 @@ except (OSError, ValueError):
 def match(gift: str, model: str) -> list[str]:
     """Темы, в которые попадает модель."""
     return [tid for tid, _, rx, gifts in _COMPILED
-            if gift in gifts or tid in _VISUAL.get((gift, model), ()) or (gift, model) in INCLUDE.get(tid, ()) or (rx.search(model) and not (tid == "adult" and (gift, model) in ADULT_EXCLUDE))]
+            if gift in gifts or tid in _VISUAL.get((gift, model), ()) or (gift, model) in INCLUDE.get(tid, ()) or (rx.search(model) and (gift, model) not in EXCLUDE.get(tid, ()) and gift not in EXCLUDE_GIFTS.get(tid, ()))]
 
 
+# исключения по названию: тема -> {(подарок, модель)}, которые совпали со словом, но по смыслу не подходят
+# подарки целиком, которые не должны попадать в тему (в том числе по слову в названии модели)
+EXCLUDE_GIFTS = {"bags": {"Swag Bag", "Spy Agaric"}}
+EXCLUDE = {
+    "flowers": {("B-Day Candle", "Rose Mint"), ("Jack-in-the-Box", "Fake Flower"), ("Hex Pot", "Orchid Volt"), ("Hex Pot", "Burnt Petals"), ("Hex Pot", "Burnt Roses"),
+                ("Chill Flame", "Iron Rose"), ("Tama Gadget", "Orchid"), ("Tama Gadget", "Clover"), ("Easter Egg", "Flowers"),
+                ("Lol Pop", "Rose Wine"), ("Mirage Lamp", "Tulip Petals"), ("Hypno Lollipop", "Purple Petal"), ("Ginger Cookie", "Rose Water")},
+    "cigars": {("Star Notepad", "Tobacco")},
+    "watches": {("Easter Egg", "Moon Watch"), ("Top Hat", "Chronos")},
+    "cars": {("Pool Float", "Water Scooter"), ("Pool Float", "Motorboat"), ("Witch Hat", "Hex Taxi"), ("Bow Tie", "Bus Guys"),
+             ("Snoop Cigar", "Hot Rod"), ("Neko Helmet", "Cotton Drift")},
+    "birds": {("Instant Ramen", "Chicken"), ("Ice Cream", "Fried Chicken"), ("Candy Cane", "Phoenix"), ("Star Notepad", "Phoenix"),
+              ("Heroic Helmet", "Phoenix"), ("Easter Egg", "Purple Bird"), ("Winter Wreath", "Flamingo")},
+    "bags": {("Money Pot", "Potato Sack"), ("Snow Globe", "Bag End"), ("Joyful Bundle", "Pepe Bag"), ("Whip Cupcake", "Bag End"), ("Mood Pack", "Burger Bag"), ("Mood Pack", "Croc Sack")},
+    "rings": {("Evil Eye", "Red Ring"), ("Tama Gadget", "Water Rings"), ("Berry Box", "Mood Ring"),
+              ("Jingle Bells", "Orchid Ring"), ("Jingle Bells", "Purple Ring")},
+}
 # модели, которые попадают в 18+ только из-за слова peach/bikini, но по смыслу не относятся: (подарок, модель)
 ADULT_EXCLUDE = {
+    ("Swag Bag", "Doggystyle"), ("Mad Pumpkin", "Uranus"),
     ("Xmas Stocking", "Shiny Peach"), ("Tama Gadget", "Peach"), ("B-Day Candle", "Peachy"),
     ("Homemade Cake", "Tender Peach"), ("Snoop Dogg", "Peach Mode"), ("Santa Hat", "Peachy"),
     ("Big Year", "Peachy"), ("Pool Float", "Bikini Bottom"),
@@ -169,3 +182,4 @@ ADULT_EXCLUDE = {
     ("Snow Globe", "Bikini Bottom"), ("Big Year", "Bikini Bottom"), ("Stellar Rocket", "Astro Peach"),
     ("Holiday Drink", "Peach Latte"), ("Hex Pot", "Peachy Fume"), ("Bow Tie", "Eggplants"),
 }
+EXCLUDE["adult"] = ADULT_EXCLUDE

@@ -112,6 +112,25 @@ CREATE TABLE IF NOT EXISTS alerts (
     active INTEGER NOT NULL DEFAULT 1,
     last_fire INTEGER NOT NULL DEFAULT 0
 );
+-- точное число улучшенных подарков коллекции: наибольший существующий номер на публичных страницах t.me/nft/<Имя>-<номер>
+CREATE TABLE IF NOT EXISTS issued_exact (
+    gift TEXT PRIMARY KEY,
+    issued INTEGER NOT NULL,
+    ts INTEGER NOT NULL
+);
+-- фоны подарков (changes.tg): цвета и средняя редкость по всем коллекциям, где фон встречается
+CREATE TABLE IF NOT EXISTS backdrops (
+    name TEXT PRIMARY KEY,
+    center TEXT, edge TEXT, pattern TEXT, text TEXT,
+    rarity_avg REAL,
+    gifts INTEGER
+);
+-- цена с учётом фона: самый дешёвый лот той же модели и фона (peek.tg); хранится, чтобы не теряться при перезапуске сервера
+CREATE TABLE IF NOT EXISTS bd_prices (
+    gift TEXT NOT NULL, model TEXT NOT NULL, backdrop TEXT NOT NULL,
+    price REAL, ts INTEGER NOT NULL,
+    PRIMARY KEY (gift, model, backdrop)
+);
 -- курс TON/GRAM к USD
 CREATE TABLE IF NOT EXISTS rates (
     ts INTEGER PRIMARY KEY,

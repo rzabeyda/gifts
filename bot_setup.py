@@ -29,7 +29,7 @@ def make_avatar(path: str = AVATAR, size: int = 640) -> None:
     im.resize((size, size), Image.LANCZOS).save(path)
 
 
-TEXT = "Мониторинг цен на Telegram-подарки"
+TEXT = "Обзор Telegram NFT Подарков"
 
 
 def make_banner(path: str = "welcome.png", w: int = 1280, h: int = 720) -> None:
