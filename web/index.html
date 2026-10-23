@@ -60,7 +60,8 @@
   .chg svg { width:12px; height:12px; vertical-align:-1px; fill:currentColor; margin-right:2px; }
 
   .back, #lb-close { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:11px 22px 11px 14px;
-    border-radius:999px; border:1.5px solid var(--acc); background:rgba(255,47,185,.14); color:var(--acc); font-size:17px; font-weight:700; }
+    border-radius:999px; border:1.5px solid #fff; background:#0b0b0d; color:#fff; font-size:17px; font-weight:700;
+    box-shadow:0 0 0 1px rgba(255,255,255,.35), 0 0 12px rgba(255,255,255,.7), 0 0 28px rgba(255,255,255,.28); }
   .back { margin:2px 0 14px; }
   .back svg, #lb-close svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
 
@@ -108,42 +109,49 @@
 
   /* карточка модели */
   #lb { position:fixed; inset:0; background:#000; display:none; flex-direction:column; align-items:center; z-index:20;
-    padding:20px 16px 28px; text-align:center; overflow-y:auto; }
+    padding:max(10px, env(safe-area-inset-top)) 16px 12px; text-align:center; overflow-y:auto; justify-content:flex-start; }
   #lb.show { display:flex; animation:fade .22s ease both; }
-  #lb img { max-width:100%; max-height:32vh; object-fit:contain; flex:none; filter:drop-shadow(0 12px 36px rgba(255,47,185,.35)); animation:pop .45s var(--spring) both; }
+  #lb img { max-width:100%; max-height:13vh; object-fit:contain; flex:none; filter:none; animation:pop .45s var(--spring) both; }
   @keyframes pop { from { transform:scale(.6); opacity:0; } to { transform:none; opacity:1; } }
-  #lb-t { font-size:20px; font-weight:800; margin-top:16px; }
-  #lb-s { color:var(--mute); margin-top:8px; line-height:1.7; }
+  #lb-t { font-size:19px; font-weight:800; margin-top:16px; }
+  #lb-s { color:var(--mute); margin-top:14px; line-height:1.45; font-size:14px; }
   #lb-s b { color:var(--text); }
   #lb-ctl { width:100%; max-width:430px; margin-top:14px; }
-  #lb-chart { min-height:150px; }
-  #lb-close { margin-top:14px; width:100%; }
+  #lb-chart { min-height:120px; }
+  #lb-ctl .gcard { text-align:left; margin-bottom:16px; padding:12px 10px 10px; }
+  #lb-per { margin:10px 0 0 !important; } #lb-per button { padding:5px 0 !important; font-size:12px; }
+  #lb-pos { margin-top:2px !important; min-height:14px !important; font-size:12px !important; }
+  #lb-close { margin-top:8px; width:100%; padding:12px 14px; }
+  #lb-ctl .lbrow { margin-top:6px; } #lb-ctl .buy { padding:14px; }
   .seg-s { margin-top:-4px; } .seg-s button { padding:7px 0; font-size:13px; border-radius:12px; }
   #lb-body { width:100%; max-width:430px; }
   #lb-body.sl { animation:slL .28s ease both; } #lb-body.sr { animation:slR .28s ease both; }
   @keyframes slL { from { opacity:0; transform:translateX(46px); } to { opacity:1; transform:none; } }
   @keyframes slR { from { opacity:0; transform:translateX(-46px); } to { opacity:1; transform:none; } }
   #lb-imgwrap { display:flex; align-items:center; justify-content:space-between; gap:6px; }
-  #lb-imgwrap img { flex:1; min-width:0; }
-  .lbn { width:44px; height:44px; flex:none; border-radius:50%; border:1px solid var(--line); background:var(--card2); color:var(--text);
+  #lb-imgwrap img { flex:0 1 29%; max-width:29%; min-width:0; margin:0 auto; }  /* иконка модели вдвое меньше, чтобы график и кнопки были выше */
+  .lbn { width:44px; height:44px; flex:none; border-radius:50%; border:1.5px solid #fff; background:#0b0b0d; color:#fff;
+    box-shadow:0 0 0 1px rgba(255,255,255,.35), 0 0 12px rgba(255,255,255,.7), 0 0 28px rgba(255,255,255,.28);
     display:flex; align-items:center; justify-content:center; transition:transform .16s var(--spring); }
   .lbn:active { transform:scale(.88); }
   .lbn svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
   #lb-pos { color:var(--mute); font-size:13px; margin-top:10px; min-height:18px; }
-  .gcard { border:1px solid var(--line); border-radius:22px; padding:14px 12px 12px; margin-bottom:16px;
+  .gcard { border:1px solid var(--line); border-radius:22px; padding:8px 10px 8px; margin-bottom:10px;
     background:linear-gradient(180deg, var(--card2), var(--card)); }
-  .gprice { font-size:32px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.4px; margin-top:-6px; }
-  .gprice .s { font-size:16px; font-weight:700; }
+  .gprice { font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.4px; margin-top:-8px; }
+  .gprice .s { font-size:14px; font-weight:700; }
   .top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .top .hico { width:46px; height:46px; flex:none; margin:0 0 10px; object-fit:contain; }
-  .shr { flex:none; width:36px; height:36px; margin:0 0 10px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); padding:0; }
+  .top .hico { width:38px; height:38px; flex:none; margin:0 0 8px; object-fit:contain; }
+  #app.noglow::before { display:none; }  /* страница коллекции: фон полностью чёрный, без розового свечения сверху */
+  .shr { flex:none; width:42px; height:42px; margin:0 0 10px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); padding:0; }
   .shr svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .shr img { width:100%; height:100%; border-radius:50%; display:block; }
   #share { padding:0; border:0; overflow:hidden; background:transparent; }
   .top .hico ~ h1 { font-size:21px; }
+  .top h1.gt { white-space:normal; overflow:visible; text-overflow:clip; font-size:18px; line-height:1.1; margin:0 0 8px; word-break:break-word; }
   .top h1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .lang { display:flex; flex:none; margin-bottom:10px; padding:3px; border:1px solid var(--line); border-radius:999px; background:var(--card); }
-  .lang span { padding:5px 10px; border-radius:999px; font-size:12px; font-weight:800; color:var(--mute); transition:background .2s, color .2s; }
+  .lang { display:flex; align-items:center; flex:none; height:42px; box-sizing:border-box; margin-bottom:10px; padding:3px; border:1px solid var(--line); border-radius:999px; background:var(--card); }
+  .lang span { display:flex; align-items:center; height:34px; padding:0 13px; border-radius:999px; font-size:12px; font-weight:800; color:var(--mute); transition:background .2s, color .2s; }
   .lang span.on { color:#0b0b0d; background:#fff; box-shadow:0 0 12px rgba(255,255,255,.6); }
   .mnote { color:var(--mute); font-size:12.5px; margin:2px 0 10px; }
   .mmap { position:relative; width:100%; border-radius:20px; overflow:hidden; background:#08080a; border:1px solid var(--line); }
@@ -168,8 +176,9 @@
   .bub span .gem { fill:#fff; margin:0; width:12px; height:12px; }
   .bub em { font-style:normal; font-size:12px; font-weight:800; color:rgb(var(--c)); text-shadow:0 0 8px rgba(var(--c), .6); }
   .buy { display:flex; align-items:center; justify-content:center; width:100%; padding:14px; border-radius:18px; border:0; color:#fff;
-    font-size:17px; font-weight:800; background:linear-gradient(135deg, #2ecc71, #17a05a); box-shadow:0 8px 24px rgba(46,204,113,.32), inset 0 1px 0 rgba(255,255,255,.3); margin:0 0 14px; }
-  #lb-buy { margin:14px 0 0; }
+    font-size:17px; font-weight:800; background:linear-gradient(135deg, #2ecc71, #139a52); border:1.5px solid #39ff88; margin:0 0 14px;
+    box-shadow:0 0 0 1px rgba(57,255,136,.45), 0 0 14px rgba(57,255,136,.85), 0 0 34px rgba(57,255,136,.4); }
+  #lb-buy { margin:0; }
   #sheet { position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.62); display:none; align-items:flex-end; justify-content:center; }
   #sheet.show { display:flex; animation:fade .2s ease both; }
   #sheet-panel { width:100%; max-width:430px; background:#0f0f12; border:1px solid var(--line); border-bottom:0; border-radius:28px 28px 0 0;
@@ -193,16 +202,17 @@
   .fsel { display:flex; gap:8px; margin:0 0 12px; }
   .fsel select { flex:1; min-width:0; padding:11px 12px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:14px; font-weight:600; font-family:inherit; appearance:none; -webkit-appearance:none; text-overflow:ellipsis; }
   .fsel select:focus { outline:none; border-color:var(--acc); }
-  .shr.fav.on svg, .favb.on svg { fill:var(--acc); stroke:var(--acc); }
-  .shr.fav.on, .favb.on { color:var(--acc); }
+  .shr.fav.on svg, .favb.on svg { fill:#fff; stroke:#fff; filter:drop-shadow(0 0 5px rgba(255,255,255,.95)); }
+  .shr.fav.on, .favb.on { color:#fff; border-color:#fff; box-shadow:0 0 12px rgba(255,255,255,.75), 0 0 28px rgba(255,255,255,.3); }
   .lbrow { display:flex; gap:10px; margin:14px 0 0; } .lbrow .buy { flex:1; margin:0; }
-  .favb { flex:none; width:54px; border-radius:18px; border:1px solid var(--line); background:var(--card); color:var(--mute); display:flex; align-items:center; justify-content:center; padding:0; }
+  .favb { flex:none; width:54px; border-radius:18px; border:1px solid #fff; box-shadow:0 0 10px rgba(255,255,255,.55), 0 0 24px rgba(255,255,255,.2); background:var(--card); color:var(--mute); display:flex; align-items:center; justify-content:center; padding:0; }
   .favb svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:2; stroke-linejoin:round; }
   .unfav { flex:none; margin-left:10px; width:32px; height:32px; border-radius:50%; border:0; background:transparent; color:var(--mute); display:flex; align-items:center; justify-content:center; padding:0; font-size:24px; line-height:1; }
-  .unfav svg { width:20px; height:20px; fill:var(--acc); stroke:var(--acc); stroke-width:1.5; stroke-linejoin:round; }
+  .unfav svg { width:20px; height:20px; fill:#fff; stroke:#fff; stroke-width:1.5; stroke-linejoin:round; filter:drop-shadow(0 0 4px rgba(255,255,255,.9)); }
   #pf-tabs button { font-size:12px; padding:7px 2px; } #pf-tabs { gap:6px; }
   .row .nftimg { width:56px; height:56px; flex:none; border-radius:14px; overflow:hidden; background:radial-gradient(circle at 50% 35%, var(--c1), var(--c2)); box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); }
   .row .nftimg img { width:100%; height:100%; border-radius:0; background:transparent; }
+  .pcnt { font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; }
   .pcmini { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; } .pcmini .gprice { font-size:24px; margin:0; } .pcmini .s { margin:0; }
   .row .p small.bdn { color:#fff; opacity:.6; font-weight:600; font-size:10.5px; margin-top:1px; }
   .row .no { color:var(--mute); font-weight:600; font-size:13px; }
@@ -213,14 +223,14 @@
   .qty button { width:28px; height:28px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:18px; padding:0; }
   .frm { display:flex; flex-direction:column; gap:10px; } .frm .buy { margin:0; }
   .frm select, .frm input { width:100%; padding:13px 14px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:15px; font-family:inherit; }
-  .buy.alt { background:linear-gradient(135deg, #3ea6ff, #2d7be0); box-shadow:0 8px 24px rgba(62,166,255,.3), inset 0 1px 0 rgba(255,255,255,.3); }
+  .buy.alt { background:linear-gradient(135deg, #3ea6ff, #2d7be0); border-color:#7cc4ff; box-shadow:0 0 0 1px rgba(124,196,255,.45), 0 0 14px rgba(124,196,255,.85), 0 0 34px rgba(124,196,255,.4); }
   .addr { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; word-break:break-all; margin:6px 0 10px; }
   .cpy { padding:8px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:13px; font-weight:700; }
   .hero { position:relative; border-radius:26px; padding:12px 14px 14px; margin:0 0 14px; border:1px solid #fff;
     background:radial-gradient(110% 130% at 0% 0%, rgba(255,47,185,.22), transparent 58%), radial-gradient(100% 120% at 100% 100%, rgba(192,38,211,.18), transparent 62%), var(--card);
     box-shadow:0 0 0 1px rgba(255,255,255,.85), 0 0 14px rgba(255,255,255,.6), 0 0 36px rgba(255,255,255,.22), inset 0 0 22px rgba(255,255,255,.06); }
   .hero-top { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-  .ava { position:relative; width:48px; height:48px; flex:none; border-radius:50%; padding:3px; background:linear-gradient(135deg, #ff2fb9, #c026d3 55%, #7a5cff); box-shadow:0 0 24px rgba(255,47,185,.45); }
+  .ava { position:relative; width:48px; height:48px; flex:none; border-radius:50%; padding:3px; background:#fff; box-shadow:0 0 0 1px rgba(255,255,255,.4), 0 0 14px rgba(255,255,255,.8), 0 0 30px rgba(255,255,255,.3); }
   .ava img, .ava i { position:absolute; inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:50%; object-fit:cover; background:#17101a; z-index:1; }
   .ava i { display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:800; font-size:16px; z-index:0; }
   .hero-n { min-width:0; } .nm { font-size:20px; font-weight:800; letter-spacing:-.3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .un { color:var(--mute); font-size:14px; margin-top:2px; }
@@ -238,10 +248,10 @@
   .tile::before { content:""; position:absolute; width:90px; height:90px; right:-30px; top:-34px; border-radius:50%; filter:blur(20px); opacity:.6; }
   .tile b { position:relative; font-size:17px; font-weight:800; letter-spacing:-.2px; line-height:1.15; }
   .tile em { position:relative; grid-column:2; font-style:normal; font-size:11px; color:rgba(255,255,255,.72); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .tdn { background:linear-gradient(150deg, #ff2fb9 0%, #b0127f 55%, #5a0a4d 100%); }
-  .tdn::before { background:#ffd36b; }
-  .tsh { background:linear-gradient(150deg, #7a5cff 0%, #5a2fd1 55%, #25125e 100%); }
-  .tsh::before { background:#ff2fb9; }
+  .tdn { background:#0b0b0d; }
+  .tdn::before { display:none; }
+  .tsh { background:#0b0b0d; }
+  .tsh::before { display:none; }
   .tic { position:relative; grid-row:1; width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(6px); box-shadow:0 6px 18px rgba(0,0,0,.25); }
   .tic svg { width:20px; height:20px; fill:#fff; stroke:#fff; stroke-width:1.6; stroke-linejoin:round; }
   .tic img { width:26px; height:26px; border-radius:50%; }
@@ -277,6 +287,29 @@
   .hf-qty button { width:56px; height:56px; border-radius:50%; border:1px solid rgba(255,255,255,.6); background:var(--card2); color:#fff; font-size:30px; line-height:1; padding:0; box-shadow:0 0 12px rgba(255,255,255,.25); }
   .hf-qty input { width:110px; height:56px; text-align:center; font-size:28px; font-weight:800; border-radius:16px; border:1px solid var(--line); background:var(--card); color:#fff; font-family:inherit; }
   .hf-sum { display:flex; justify-content:space-between; align-items:center; padding:0 4px; margin-bottom:14px; font-size:15px; color:var(--mute); } .hf-sum b { color:#fff; font-size:20px; }
+  .mprice { margin:-4px 2px 12px; color:var(--mute); font-size:14px; } .mprice b { color:#fff; font-size:18px; }
+  .gstats { display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; margin:6px 0 12px; }
+  .gst { min-width:0; padding:7px 4px 8px; border-radius:14px; border:1.5px solid #fff; background:#0b0b0d; box-shadow:0 0 0 1px rgba(255,255,255,.35), 0 0 12px rgba(255,255,255,.7), 0 0 28px rgba(255,255,255,.28); text-align:center; }
+  .gst span { display:block; color:#b9bcc4; font-size:11px; font-weight:600; }
+  .gst b { display:block; color:#fff; font-size:15px; font-weight:800; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+  .gst b.pgn { color:var(--up); text-shadow:0 0 10px rgba(57,255,136,.55); } .gst b.pls { color:var(--down); text-shadow:0 0 10px rgba(255,77,87,.55); }
+  .gst b .gem { width:12px; height:12px; margin-left:3px; }
+  .gst b .up { color:var(--up) !important; } .gst b .dn { color:var(--down) !important; } .gst b .fl { color:#b9bcc4 !important; }
+  .gst b .chg { font-size:14px; justify-content:center; } .gst b .chg svg { width:10px; height:10px; }
+  .ghrow { display:flex; align-items:center; justify-content:space-between; gap:6px; } .ghrow img { flex:0 1 36%; }
+  .ghero { text-align:center; padding-top:max(6px, env(safe-area-inset-top)); } .ghero img { display:block; margin:0 auto; max-height:13vh; max-width:36%; object-fit:contain; filter:none; }
+  .gtitle { font-size:18px; font-weight:800; margin:12px 0 10px; line-height:1.15; }
+  #buy-gift { padding:10px; font-size:16px; margin:0; } .lbrow { margin:0 0 10px; }
+  #gper2 { margin-top:6px !important; } #gper2 button { padding:5px 0 !important; font-size:12px; }
+  #msort { margin:0 0 8px; gap:6px; } #msort button { padding:8px 0; font-size:13.5px; border-radius:12px; }
+  .search { padding:10px 14px; margin-bottom:8px; }
+  .dn-t { color:var(--mute); font-size:13.5px; line-height:1.35; margin:-4px 0 10px; }
+  #dn-amts { margin:0 0 8px; gap:5px; } #dn-amts button { padding:7px 0; }
+  .dn-row { display:flex; gap:8px; margin-bottom:10px; } .dn-row input { flex:0 0 38%; min-width:0; padding:11px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.85); background:var(--card); color:#fff; font-size:16px; font-family:inherit; } .dn-row .buy { flex:1; margin:0; padding:11px; font-size:15px; }
+  .dn-sep { color:var(--mute); font-size:12.5px; font-weight:700; margin:2px 2px 6px; }
+  .dn-addr { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:14px; border:1px solid rgba(255,255,255,.85); box-shadow:0 0 10px rgba(255,255,255,.3); margin-bottom:8px; } .dn-addr .addr { flex:1; min-width:0; margin:0; font-size:10.5px; line-height:1.3; } .dn-addr .cpy { flex:none; padding:7px 10px; }
+  #dn-gram { padding:11px; font-size:15px; margin:0; color:#fff; background:linear-gradient(135deg, #2f8dff, #1559c9); border:1.5px solid #6db3ff; box-shadow:0 0 0 1px rgba(109,179,255,.45), 0 0 14px rgba(109,179,255,.9), 0 0 34px rgba(109,179,255,.45); }
+  #dn-go { color:#1a1200; background:linear-gradient(135deg, #ffd84a, #f2a900); border:1.5px solid #ffe36b; box-shadow:0 0 0 1px rgba(255,227,107,.5), 0 0 14px rgba(255,216,74,.9), 0 0 34px rgba(255,216,74,.45); }
   .sh-note { color:var(--mute); font-size:12.5px; margin-top:6px; line-height:1.45; }
   @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
 </style>
@@ -292,10 +325,10 @@
     </div>
     <div id="lb-pos"></div><div id="lb-t"></div><div id="lb-s"></div>
     <div id="lb-ctl">
-      <div id="lb-chart"></div>
-      <div class="seg" id="lb-per"></div>
+      <div class="gcard"><div id="lb-chart"></div>
+      <div class="seg seg-s" id="lb-per" style="margin:10px 0 0"></div></div>
       <div class="lbrow"><button id="lb-buy" class="buy rp">Купить</button><button id="lb-fav" class="favb rp" aria-label="Favorite"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/></svg></button></div>
-      <button id="lb-close" class="rp"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Назад</button>
+      <button id="lb-close" class="rp">Назад</button>
     </div>
   </div></div>
   <div id="sheet"><div id="sheet-panel"></div></div>
@@ -316,7 +349,7 @@ const $ = s => document.querySelector(s), view = $('#view');
 let LANG = 'ru';
 try { LANG = localStorage.getItem('lang') || ((tg?.initDataUnsafe?.user?.language_code || navigator.language || 'ru').slice(0, 2) === 'ru' ? 'ru' : 'en'); } catch (e) {}
 const I18N = {
-  ru: { nav_gifts: 'Гифты', nav_themes: 'Сэты', nav_map: 'Пузыри', nav_cap: 'Капа', title_map: 'Пузыри', pcs: 'шт.', hub4_gifts: 'Коллекции', hub4_pmodels: 'Модели', hub4_map: 'Пузыри', hub4_themes: 'Сэты', mine_bd: 'с фоном', hf_pick_gift: 'Выбери подарок', pf_sum: 'Итого', pf_add_more: 'Добавить ещё', tg_gifts: 'Коллекции', tg_models: 'Модели', pf_mine: 'Мои гифты', mine_tg: 'Список подарков доступен в приложении внутри Telegram.', mine_empty: 'Не вижу подарков. Они должны быть показаны в твоём профиле Telegram, и ты должен был открыть бота.', mine_total: 'Стоимость моих гифтов', mine_rest: 'Ещё {n} в профиле: обычные подарки без улучшения, их не считаем.', hub_pmodels: 'Модели', hub_backdrops: 'Фоны', pm_exp: 'Дорогие', pm_cheap: 'Дешёвые', pm_note: 'Топ-100 по цене. Ищи по названию, чтобы найти нужную модель.', nothing: 'Ничего не найдено', bd_rare: 'Редкие', bd_common: 'Частые', bd_note: 'Фоны подарков: чем меньше процент, тем реже фон встречается (в среднем по коллекциям).', bd_g: 'кол.', auth_t: 'Откройте приложение в Telegram', auth_b: 'Открыть бота', pf_favs: 'Избранное', sh_port: 'Мой портфель', sh_mine: 'Мои гифты', sh_mine_h: 'Мои гифты в Gift Hub:', sh_models: 'Мои модели', sh_gifts: 'Мои подарки', sh_sets: 'Мои сэты', sh_app: 'Приложение', sh_note: 'Отправится текстом со ссылкой на бота.', sh_head: '', sh_port_h: 'Мой портфель в Gift Hub:', sh_models_h: 'Мои избранные модели в Gift Hub:', sh_gifts_h: 'Мои избранные подарки в Gift Hub:', sh_sets_h: 'Мои избранные сэты в Gift Hub:', tl_donate: 'Поддержать проект', tl_share: 'Расскажи друзьям', pf_guest: 'Гость', pf_positions: 'Позиции', pf_value: 'Стоимость', pf_port: 'Портфель', pf_alerts: 'Уведомления', pf_donate: 'Донат', pf_f_gift: 'Подарки', pf_f_model: 'Модели', pf_f_set: 'Сэты', pf_fav_empty: 'Здесь пока пусто. Нажми звёздочку на подарке, модели или сэте.', pf_total: 'Стоимость портфеля', pf_add: 'Добавить', pf_port_empty: 'Добавь свои подарки, и я посчитаю их стоимость.', pf_qty: 'Количество', pf_save: 'Сохранить', pf_whole: 'Весь подарок (по флору)', pf_al_note: 'Бот пришлёт сообщение, когда условие выполнится. Проверка каждые несколько минут.', pf_al_tg: 'Уведомления работают только в приложении внутри Telegram.', pf_al_add: 'Новое уведомление', pf_al_empty: 'Уведомлений пока нет.', pf_al_val: 'Значение (GRAM или %)', pf_c_below: 'Цена ниже', pf_c_above: 'Цена выше', pf_c_change: 'Изменение за сутки больше', dn_title: 'Поддержать проект', dn_text: 'Gift Hub бесплатный. Если он полезен, можно поддержать его развитие любой суммой.', dn_stars: 'Telegram Stars', dn_amount: 'Сумма в Stars', dn_send: 'Отправить Stars', dn_crypto: 'GRAM и USDT (сеть TON)', dn_addr: 'Адрес кошелька', dn_copy: 'Скопировать адрес', dn_copied: 'Скопировано', dn_gram: 'Отправить GRAM', dn_usdt: 'Отправить USDT', dn_note: 'GRAM — это TON. USDT отправляй только в сети TON.', dn_thanks: 'Спасибо за поддержку!',  hub_gifts: 'Подарки', hub_map: 'Пузыри', hub_themes: 'Сэты', nav_profile: 'Профиль', share_t: 'Поделиться',  search_set: 'Поиск сета', f_gift: 'Все гифты', f_model: 'Все модели', lots: 'Дешёвые лоты', no_lots: 'нет лотов', live_wait: 'Ищу живые лоты на маркетах…', buy_note_live: 'Цены и лоты — реальные предложения сейчас (обновляются раз в несколько минут). Нажми на лот, чтобы открыть подарок.', models_tab: 'Модели', grp_all: 'Все', grp_pets: 'Питомцы', grp_gems: 'Цвет', grp_status: 'Статус', grp_other: 'Прочее', buy: 'Купить', buy_title: 'Где купить', buy_on: 'Купить на', best: 'лучшая цена', no_price: 'цена на маркете', buy_note: 'Цены — это цена подарка (коллекции) на каждом маркете, самый дешёвый сверху. Цена конкретной модели может отличаться.', mode_map: 'Гифты', mode_top: 'Модели', dir_up: 'Рост', dir_down: 'Падение', top_wait: 'Данные за этот период ещё копятся', size_profit: 'Профит', size_cap: 'Капа', note_up: 'топ-9 по росту цены за период: чем больше процент, тем больше пузырь', note_down: 'топ-9 по падению цены за период: чем больше процент, тем больше пузырь',  note_cap: 'топ-9 по капитализации: размер пузыря — капитализация, процент — изменение цены', note_top: 'топ-9 моделей по изменению цены за период: чем больше процент, тем больше пузырь', map_note: 'размер — капитализация, цвет — изменение цены за период', back: 'Назад', up: 'Наверх',
+  ru: { nav_gifts: 'Гифты', nav_themes: 'Сэты', nav_map: 'Пузыри', nav_cap: 'Капа', title_map: 'Пузыри', pcs: 'шт.', retry: 'Повторить', app_tag: 'Всё про Telegram Gifts в одной апке', b_price: 'Цена', b_change: 'Рост', b_rarity: 'Редкость', b_qty: 'Тираж', model_price: 'Цена модели', hub4_gifts: 'Подарки', hub4_pmodels: 'Модели', hub4_map: 'Пузыри', hub4_themes: 'Сэты', mine_bd: 'с фоном', hf_pick_gift: 'Выбери подарок', pf_sum: 'Итого', pf_add_more: 'Добавить ещё', tg_gifts: 'Коллекции', tg_models: 'Модели', pf_mine: 'Мои гифты', mine_tg: 'Список подарков доступен в приложении внутри Telegram.', mine_empty: 'Не вижу подарков. Они должны быть показаны в твоём профиле Telegram, и ты должен был открыть бота.', mine_total: 'Стоимость моих гифтов', mine_rest: 'Ещё {n} в профиле: обычные подарки без улучшения, их не считаем.', hub_pmodels: 'Модели', hub_backdrops: 'Фоны', pm_exp: 'Дорогие', pm_cheap: 'Дешёвые', pm_note: 'Топ-100 по цене. Ищи по названию, чтобы найти нужную модель.', nothing: 'Ничего не найдено', bd_rare: 'Редкие', bd_common: 'Частые', bd_note: 'Фоны подарков: чем меньше процент, тем реже фон встречается (в среднем по коллекциям).', bd_g: 'кол.', auth_t: 'Откройте приложение в Telegram', auth_b: 'Открыть бота', pf_favs: 'Избранное', sh_port: 'Мой портфель', sh_mine: 'Мои гифты', sh_mine_h: 'Мои гифты в Gift Hub:', sh_models: 'Мои модели', sh_gifts: 'Мои подарки', sh_sets: 'Мои сэты', sh_app: 'Приложение', sh_note: 'Отправится текстом со ссылкой на бота.', sh_head: '', sh_port_h: 'Мой портфель в Gift Hub:', sh_models_h: 'Мои избранные модели в Gift Hub:', sh_gifts_h: 'Мои избранные подарки в Gift Hub:', sh_sets_h: 'Мои избранные сэты в Gift Hub:', tl_donate: 'Поддержать проект', tl_share: 'Расскажи друзьям', pf_guest: 'Гость', pf_positions: 'Позиции', pf_value: 'Стоимость', pf_port: 'Портфель', pf_alerts: 'Уведомления', pf_donate: 'Донат', pf_f_gift: 'Подарки', pf_f_model: 'Модели', pf_f_set: 'Сэты', pf_fav_empty: 'Здесь пока пусто. Нажми звёздочку на подарке, модели или сэте.', pf_total: 'Стоимость портфеля', pf_add: 'Добавить', pf_port_empty: 'Добавь свои подарки, и я посчитаю их стоимость.', pf_qty: 'Количество', pf_save: 'Сохранить', pf_whole: 'Весь подарок (по флору)', pf_al_note: 'Бот пришлёт сообщение, когда условие выполнится. Проверка каждые несколько минут.', pf_al_tg: 'Уведомления работают только в приложении внутри Telegram.', pf_al_add: 'Новое уведомление', pf_al_empty: 'Уведомлений пока нет.', pf_al_val: 'Значение (GRAM или %)', pf_c_below: 'Цена ниже', pf_c_above: 'Цена выше', pf_c_change: 'Изменение за сутки больше', dn_title: 'Поддержать проект', dn_text: 'Gifts бесплатный. Если он полезен, можно поддержать его развитие любой суммой.', dn_stars: 'Telegram Stars', dn_amount: 'Сумма в Stars', dn_send: 'Отправить Stars', dn_crypto: 'GRAM и USDT (сеть TON)', dn_addr: 'Адрес кошелька', dn_copy: 'Скопировать адрес', dn_copied: 'Скопировано', dn_gram: 'Отправить GRAM', dn_usdt: 'Отправить USDT', dn_note: 'GRAM — это TON. USDT отправляй только в сети TON.', dn_thanks: 'Спасибо за поддержку!',  hub_gifts: 'Подарки', hub_map: 'Пузыри', hub_themes: 'Сэты', nav_profile: 'Профиль', share_t: 'Поделиться',  search_set: 'Поиск сета', f_gift: 'Все гифты', f_model: 'Все модели', lots: 'Дешёвые лоты', no_lots: 'нет лотов', live_wait: 'Ищу живые лоты на маркетах…', buy_note_live: 'Цены и лоты — реальные предложения сейчас (обновляются раз в несколько минут). Нажми на лот, чтобы открыть подарок.', models_tab: 'Модели', grp_all: 'Все', grp_pets: 'Питомцы', grp_gems: 'Цвет', grp_status: 'Статус', grp_other: 'Прочее', buy: 'Купить', buy_title: 'Где купить', buy_on: 'Купить на', best: 'лучшая цена', no_price: 'цена на маркете', buy_note: 'Цены — это цена подарка (коллекции) на каждом маркете, самый дешёвый сверху. Цена конкретной модели может отличаться.', mode_map: 'Гифты', mode_top: 'Модели', dir_up: 'Рост', dir_down: 'Падение', top_wait: 'Данные за этот период ещё копятся', size_profit: 'Профит', size_cap: 'Капа', note_up: 'топ-9 по росту цены за период: чем больше процент, тем больше пузырь', note_down: 'топ-9 по падению цены за период: чем больше процент, тем больше пузырь',  note_cap: 'топ-9 по капитализации: размер пузыря — капитализация, процент — изменение цены', note_top: 'топ-9 моделей по изменению цены за период: чем больше процент, тем больше пузырь', map_note: 'размер — капитализация, цвет — изменение цены за период', back: 'Назад', up: 'Наверх',
     title_gifts: 'Гифты', title_themes: 'Сэты', title_cap: 'Капитализация',
     search_gift: 'Поиск подарка', search_model: 'Поиск модели',
     sort_price: 'Цена', sort_cap: 'Капа', sort_supply: 'Тираж', sort_chg: 'Рост', sort_rarity: 'Редкость',
@@ -329,7 +362,7 @@ const I18N = {
     ago_min: 'мин назад', ago_h: 'ч назад', ago_d: 'дн назад', models_w: 'моделей', from_w: 'от',
     cap_note: 'оценка: тираж × цена подарка, по всем подаркам',
     cap_wait: 'История копится: график появится, когда наберётся больше одной точки.' },
-  en: { nav_gifts: 'Gifts', nav_themes: 'Sets', nav_map: 'Bubbles', nav_cap: 'Cap', title_map: 'Bubbles', pcs: 'pcs', hub4_gifts: 'Collections', hub4_pmodels: 'Models', hub4_map: 'Bubbles', hub4_themes: 'Sets', mine_bd: 'incl. backdrop', hf_pick_gift: 'Pick a gift', pf_sum: 'Total', pf_add_more: 'Add more', tg_gifts: 'Collections', tg_models: 'Models', pf_mine: 'My gifts', mine_tg: 'The gift list is available in the app inside Telegram.', mine_empty: 'No gifts found. They must be shown on your Telegram profile, and you must have opened the bot.', mine_total: 'Value of my gifts', mine_rest: '{n} more on your profile: regular gifts that are not upgraded, not counted.', hub_pmodels: 'Models', hub_backdrops: 'Backdrops', pm_exp: 'Expensive', pm_cheap: 'Cheap', pm_note: 'Top 100 by price. Search by name to find a model.', nothing: 'Nothing found', bd_rare: 'Rare', bd_common: 'Common', bd_note: 'Gift backdrops: the lower the percent, the rarer the backdrop (average over collections).', bd_g: 'coll.', auth_t: 'Open the app inside Telegram', auth_b: 'Open the bot', pf_favs: 'Favorites', sh_port: 'My portfolio', sh_mine: 'My gifts', sh_mine_h: 'My gifts in Gift Hub:', sh_models: 'My models', sh_gifts: 'My gifts', sh_sets: 'My sets', sh_app: 'The app', sh_note: 'Sent as text with a link to the bot.', sh_head: '', sh_port_h: 'My portfolio in Gift Hub:', sh_models_h: 'My favorite models in Gift Hub:', sh_gifts_h: 'My favorite gifts in Gift Hub:', sh_sets_h: 'My favorite sets in Gift Hub:', tl_donate: 'Support the project', tl_share: 'Tell your friends', pf_guest: 'Guest', pf_positions: 'Items', pf_value: 'Value', pf_port: 'Portfolio', pf_alerts: 'Alerts', pf_donate: 'Donate', pf_f_gift: 'Gifts', pf_f_model: 'Models', pf_f_set: 'Sets', pf_fav_empty: 'Nothing here yet. Tap the star on a gift, model or set.', pf_total: 'Portfolio value', pf_add: 'Add', pf_port_empty: 'Add your gifts and I will calculate their value.', pf_qty: 'Quantity', pf_save: 'Save', pf_whole: 'Whole gift (floor price)', pf_al_note: 'The bot will message you when the condition is met. Checked every few minutes.', pf_al_tg: 'Alerts only work in the app inside Telegram.', pf_al_add: 'New alert', pf_al_empty: 'No alerts yet.', pf_al_val: 'Value (GRAM or %)', pf_c_below: 'Price below', pf_c_above: 'Price above', pf_c_change: 'Daily change over', dn_title: 'Support the project', dn_text: 'Gift Hub is free. If it is useful, you can support its development with any amount.', dn_stars: 'Telegram Stars', dn_amount: 'Amount in Stars', dn_send: 'Send Stars', dn_crypto: 'GRAM and USDT (TON network)', dn_addr: 'Wallet address', dn_copy: 'Copy address', dn_copied: 'Copied', dn_gram: 'Send GRAM', dn_usdt: 'Send USDT', dn_note: 'GRAM is TON. Send USDT only on the TON network.', dn_thanks: 'Thank you for your support!',  hub_gifts: 'Gifts', hub_map: 'Bubbles', hub_themes: 'Sets', nav_profile: 'Profile', share_t: 'Share',  search_set: 'Search sets', f_gift: 'All gifts', f_model: 'All models', lots: 'Cheapest listings', no_lots: 'no listings', live_wait: 'Looking for live listings…', buy_note_live: 'Prices and listings are real offers right now (refreshed every few minutes). Tap a listing to open the gift.', models_tab: 'Models', grp_all: 'All', grp_pets: 'Pets', grp_gems: 'Color', grp_status: 'Status', grp_other: 'Other', buy: 'Buy', buy_title: 'Where to buy', buy_on: 'Buy on', best: 'best price', no_price: 'price on the market', buy_note: 'Prices are the gift (collection) floor on each market, cheapest first. A specific model may cost differently.', mode_map: 'Gifts', mode_top: 'Models', dir_up: 'Growth', dir_down: 'Decline', top_wait: 'Data for this period is still accumulating', size_profit: 'Profit', size_cap: 'Cap', note_up: 'top 9 by price growth over the period: the bigger the percent, the bigger the bubble', note_down: 'top 9 by price decline over the period: the bigger the percent, the bigger the bubble',  note_cap: 'top 9 by market cap: bubble size = market cap, percent = price change', note_top: 'top 9 models by price change over the period: the bigger the percent, the bigger the bubble', map_note: 'size = market cap, color = price change over the period', back: 'Back', up: 'Up',
+  en: { nav_gifts: 'Gifts', nav_themes: 'Sets', nav_map: 'Bubbles', nav_cap: 'Cap', title_map: 'Bubbles', pcs: 'pcs', retry: 'Retry', app_tag: 'Everything about Telegram Gifts in one app', b_price: 'Price', b_change: 'Growth', b_rarity: 'Rarity', b_qty: 'Supply', model_price: 'Model price', hub4_gifts: 'Gifts', hub4_pmodels: 'Models', hub4_map: 'Bubbles', hub4_themes: 'Sets', mine_bd: 'incl. backdrop', hf_pick_gift: 'Pick a gift', pf_sum: 'Total', pf_add_more: 'Add more', tg_gifts: 'Collections', tg_models: 'Models', pf_mine: 'My gifts', mine_tg: 'The gift list is available in the app inside Telegram.', mine_empty: 'No gifts found. They must be shown on your Telegram profile, and you must have opened the bot.', mine_total: 'Value of my gifts', mine_rest: '{n} more on your profile: regular gifts that are not upgraded, not counted.', hub_pmodels: 'Models', hub_backdrops: 'Backdrops', pm_exp: 'Expensive', pm_cheap: 'Cheap', pm_note: 'Top 100 by price. Search by name to find a model.', nothing: 'Nothing found', bd_rare: 'Rare', bd_common: 'Common', bd_note: 'Gift backdrops: the lower the percent, the rarer the backdrop (average over collections).', bd_g: 'coll.', auth_t: 'Open the app inside Telegram', auth_b: 'Open the bot', pf_favs: 'Favorites', sh_port: 'My portfolio', sh_mine: 'My gifts', sh_mine_h: 'My gifts in Gift Hub:', sh_models: 'My models', sh_gifts: 'My gifts', sh_sets: 'My sets', sh_app: 'The app', sh_note: 'Sent as text with a link to the bot.', sh_head: '', sh_port_h: 'My portfolio in Gift Hub:', sh_models_h: 'My favorite models in Gift Hub:', sh_gifts_h: 'My favorite gifts in Gift Hub:', sh_sets_h: 'My favorite sets in Gift Hub:', tl_donate: 'Support the project', tl_share: 'Tell your friends', pf_guest: 'Guest', pf_positions: 'Items', pf_value: 'Value', pf_port: 'Portfolio', pf_alerts: 'Alerts', pf_donate: 'Donate', pf_f_gift: 'Gifts', pf_f_model: 'Models', pf_f_set: 'Sets', pf_fav_empty: 'Nothing here yet. Tap the star on a gift, model or set.', pf_total: 'Portfolio value', pf_add: 'Add', pf_port_empty: 'Add your gifts and I will calculate their value.', pf_qty: 'Quantity', pf_save: 'Save', pf_whole: 'Whole gift (floor price)', pf_al_note: 'The bot will message you when the condition is met. Checked every few minutes.', pf_al_tg: 'Alerts only work in the app inside Telegram.', pf_al_add: 'New alert', pf_al_empty: 'No alerts yet.', pf_al_val: 'Value (GRAM or %)', pf_c_below: 'Price below', pf_c_above: 'Price above', pf_c_change: 'Daily change over', dn_title: 'Support the project', dn_text: 'Gifts is free. If it is useful, you can support its development with any amount.', dn_stars: 'Telegram Stars', dn_amount: 'Amount in Stars', dn_send: 'Send Stars', dn_crypto: 'GRAM and USDT (TON network)', dn_addr: 'Wallet address', dn_copy: 'Copy address', dn_copied: 'Copied', dn_gram: 'Send GRAM', dn_usdt: 'Send USDT', dn_note: 'GRAM is TON. Send USDT only on the TON network.', dn_thanks: 'Thank you for your support!',  hub_gifts: 'Gifts', hub_map: 'Bubbles', hub_themes: 'Sets', nav_profile: 'Profile', share_t: 'Share',  search_set: 'Search sets', f_gift: 'All gifts', f_model: 'All models', lots: 'Cheapest listings', no_lots: 'no listings', live_wait: 'Looking for live listings…', buy_note_live: 'Prices and listings are real offers right now (refreshed every few minutes). Tap a listing to open the gift.', models_tab: 'Models', grp_all: 'All', grp_pets: 'Pets', grp_gems: 'Color', grp_status: 'Status', grp_other: 'Other', buy: 'Buy', buy_title: 'Where to buy', buy_on: 'Buy on', best: 'best price', no_price: 'price on the market', buy_note: 'Prices are the gift (collection) floor on each market, cheapest first. A specific model may cost differently.', mode_map: 'Gifts', mode_top: 'Models', dir_up: 'Growth', dir_down: 'Decline', top_wait: 'Data for this period is still accumulating', size_profit: 'Profit', size_cap: 'Cap', note_up: 'top 9 by price growth over the period: the bigger the percent, the bigger the bubble', note_down: 'top 9 by price decline over the period: the bigger the percent, the bigger the bubble',  note_cap: 'top 9 by market cap: bubble size = market cap, percent = price change', note_top: 'top 9 models by price change over the period: the bigger the percent, the bigger the bubble', map_note: 'size = market cap, color = price change over the period', back: 'Back', up: 'Up',
     title_gifts: 'Gifts', title_themes: 'Sets', title_cap: 'Market cap',
     search_gift: 'Search gifts', search_model: 'Search models',
     sort_price: 'Price', sort_cap: 'Cap', sort_supply: 'Supply', sort_chg: 'Growth', sort_rarity: 'Rarity',
@@ -346,12 +379,16 @@ const I18N = {
 const T = k => I18N[LANG][k] ?? I18N.ru[k] ?? k;
 const LOC = () => LANG === 'ru' ? 'ru' : 'en-US';
 const CH_PERIODS = [['0.04', '1h'], ['1', '1d'], ['7', '1w'], ['30', '1m'], ['36500', 'all']];
-const cropHour = (arr, d) => d < 1 ? arr.filter(p => p.t >= Date.now() / 1000 - 3600) : arr;  // «1ч»: сервер отдаёт сутки, оставляем последний час
+const cropHour = (arr, d) => {  // «1ч»: цены приходят раз в ~40 минут, поэтому в часовое окно часто попадает 0–1 точка — тогда берём последние три
+  if (d >= 1) return arr;
+  const r = arr.filter(p => p.t >= Date.now() / 1000 - 3600);
+  return r.length >= 2 ? r : arr.slice(-3);
+};  // «1ч»: сервер отдаёт сутки, оставляем последний час
 const perBtns = () => CH_PERIODS.map(([k, p]) => `<button class="rp" data-v="${k}">${T('p_' + p)}</button>`).join('');
 // верхняя строка экрана: заголовок слева, переключатель языка справа
 const STAR = '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/></svg>';
 const favAttr = f => `data-k="${esc(f.kind)}" data-g="${esc(f.gift)}" data-m="${esc(f.model || '')}"`;
-const topbar = (title, icon, fav) => `<div class="top">${icon ? `<img class="hico" src="${icon}" alt="" onerror="this.style.display='none'">` : ''}<h1>${title}</h1>${fav ? `<button class="shr rp fav ${U.isFav(fav.kind, fav.gift, fav.model) ? 'on' : ''}" id="fav" ${favAttr(fav)} aria-label="Favorite">${STAR}</button>` : ''}<button class="shr rp" id="share" aria-label="Share"><img src="/m/share.png" alt=""></button><div class="lang rp" id="lang"><span class="${LANG === 'ru' ? 'on' : ''}">RU</span><span class="${LANG === 'en' ? 'on' : ''}">EN</span></div></div>`;
+const topbar = (title, icon, fav) => `<div class="top">${icon ? `<img class="hico" src="${icon}" alt="" onerror="this.style.display='none'"><h1 class="gt">${title}</h1>` : `<h1>${title}</h1>`}${fav ? `<button class="shr rp fav ${U.isFav(fav.kind, fav.gift, fav.model) ? 'on' : ''}" id="fav" ${favAttr(fav)} aria-label="Favorite">${STAR}</button>` : ''}<button class="shr rp" id="share" aria-label="Share"><img src="/m/share.png" alt=""></button><div class="lang rp" id="lang"><span class="${LANG === 'ru' ? 'on' : ''}">RU</span><span class="${LANG === 'en' ? 'on' : ''}">EN</span></div></div>`;
 // API отвечает только внутри Telegram: к каждому запросу прикладываем подписанные данные открытия (initData)
 const api = p => fetch('/api' + p, { headers: tg?.initData ? { 'X-Init-Data': tg.initData } : {} }).then(r => {
   if (r.status === 401) { authWall(); throw new Error(401); }
@@ -411,7 +448,7 @@ const sortRows = (rows, field, dir) => rows.slice().sort((a, b) => {  // без 
   return x == null ? (y == null ? 0 : 1) : y == null ? -1 : (x - y) * dir;
 });
 // «Подарки» и «Модели» — один блок с переключателем внутри (gtog); сверху остаются Подарки / Пузыри / Сэты
-const hubSeg = on => `<div class="seg" id="hub">${['gifts', 'pmodels', 'map', 'themes'].map(k => `<button class="rp ${k === on ? 'on' : ''}" data-h="${k}">${T('hub4_' + k)}</button>`).join('')}</div>`;
+const hubSeg = on => `<div class="seg" id="hub">${['gifts', 'map', 'themes'].map(k => `<button class="rp ${k === on ? 'on' : ''}" data-h="${k}">${T('hub4_' + k)}</button>`).join('')}</div>`;
 const bindHub = () => document.querySelectorAll('#hub button').forEach(b => b.onclick = () => { if (!b.classList.contains('on')) goTab(b.dataset.h); });
 const stagger = i => `style="--i:${Math.min(i, 14)}"`;
 
@@ -438,7 +475,7 @@ view.addEventListener('scroll', () => $('#up').classList.toggle('show', view.scr
 $('#up').onclick = () => view.scrollTo({ top: 0, behavior: 'smooth' });
 // viewId: после await ответ мог прийти, когда пользователь уже ушёл на другую вкладку — такой ответ отбрасываем
 let viewId = 0;
-const mount = html => { viewId++; setBack(null); const sw = $('#pf-share-wrap'); if (sw) sw.hidden = true; view.innerHTML = html; view.firstElementChild?.classList.add('view-in'); return viewId; };
+const mount = html => { viewId++; setBack(null); $('#app').classList.remove('noglow'); const sw = $('#pf-share-wrap'); if (sw) sw.hidden = true; view.innerHTML = html; view.firstElementChild?.classList.add('view-in'); return viewId; };
 
 // круглая кнопка «назад» слева (как «вверх» справа) и нативная кнопка Telegram: появляются во вложенных экранах
 let backFn = null;
@@ -450,6 +487,7 @@ $('#back-fab').onclick = () => backFn?.();
 try { tg?.BackButton?.onClick(() => { $('#lb').classList.contains('show') ? $('#lb').classList.remove('show') : backFn?.(); }); } catch (e) {}
 
 /* ---------- Подарки ---------- */
+let giftOrder = [];
 let giftsCache = null, giftSort = { key: 'chg', dir: -1 }, giftPeriod = '1d', giftsScroll = 0;  // по умолчанию: рост за сегодня, у кого больше всего + сверху
 const PERIODS = ['1h', '1d', '1w', '1m', 'all'];
 const giftChange = g => g.changes ? g.changes[giftPeriod] : null;
@@ -503,10 +541,13 @@ async function showGifts() {
       const on = b.dataset.v === giftSort.key; b.classList.toggle('on', on);
       // зелёная подсветка — рост (больше всего набрали / по возрастанию), красная — падение (больше всего потеряли / по убыванию)
       const up = on && giftSort.dir === -1;  // у всех трёх кнопок: наибольшее сверху = зелёная стрелка вверх (Pepe по цене, Snoop Dogg по тиражу)
-      b.classList.toggle('gain', up); b.classList.toggle('loss', on && !up);
+      const colored = on && b.dataset.v !== 'supply';
+      b.classList.toggle('gain', colored && up); b.classList.toggle('loss', colored && !up);
       b.innerHTML = T({ price: 'sort_price', supply: 'sort_supply', chg: 'sort_chg' }[b.dataset.v]) + arrowBtn(on, -giftSort.dir);
     });
-    renderList(box, sortBy(giftsCache.filter(g => g.name.toLowerCase().includes(q)), GSORT[giftSort.key], giftSort.dir), giftRow, animate);
+    const shownGifts = sortBy(giftsCache.filter(g => g.name.toLowerCase().includes(q)), GSORT[giftSort.key], giftSort.dir);
+    giftOrder = shownGifts.map(g => g.name);  // порядок, в котором коллекции листаются свайпом на странице подарка
+    renderList(box, shownGifts, giftRow, animate);
     animate = false;
   };
   box.onclick = e => { const el = e.target.closest('[data-g]'); if (el) navigate('models', el.dataset.g); };
@@ -533,13 +574,15 @@ const modelRow = (m, gift, sub, i, anim) => `
 const rarityTxt = m => T('rarity_l') + ' ' + (m.rarity_permille != null ? m.rarity_permille / 10 + '%' : '—');
 
 // сверху экрана подарка: цена, тираж, капа и график цены с периодами
-let gcDays = 30;
+let gcDays = 30;  // по умолчанию график за 1м
 function giftHead(gift) {
   const g = giftsCache?.find(x => x.name === gift);
-  const info = g ? `<div class="gprice">${fmt(g.floor_ton)}${GEM} <span class="s">${chg(giftChange(g))}</span></div>
-    <div class="s" style="color:var(--mute);margin:2px 0 12px">${T('supply')} ${g.upgraded ? fmtS(g.upgraded) + (g.supply ? ' / ' + fmtS(g.supply) : '') : g.supply != null ? fmtS(g.supply) : '—'}${g.cap_ton != null ? ' · ' + T('cap_w') + ' ' + fmtK(g.cap_ton) + ' GRAM' : ''}</div>` : '';
-  return `${info}<button class="buy rp" id="buy-gift">${T('buy')}</button><div class="gcard"><div id="gchart"><div class="empty" style="padding:30px">${T('loading')}</div></div>
-    <div class="seg seg-s" id="gper2" style="margin:10px 0 0">${perBtns()}</div></div>`;
+  const qty = g ? (g.upgraded ? fmtS(g.upgraded) : g.supply != null ? fmtS(g.supply) : '—') : '—';
+  const blocks = g ? `<div class="gstats"><div class="gst"><span>${T('b_price')}</span><b>${fmt(g.floor_ton)}${GEM}</b></div><div class="gst"><span>${T('b_change')}</span><b id="gchg">${chg(giftChange(g))}</b></div>
+    <div class="gst"><span>${T('supply')}</span><b>${qty}</b></div><div class="gst"><span>${T('cap_w')}</span><b>${g.cap_ton != null ? fmtK(g.cap_ton) + GEM : '—'}</b></div></div>` : '';
+  return `<div class="ghero"><div class="ghrow"><button class="lbn" id="gprev" aria-label="prev"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><img src="${img_(gift)}" alt="" onerror="this.style.display='none'"><button class="lbn" id="gnext" aria-label="next"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></div><div class="gtitle">${esc(gift)}</div></div>${blocks}
+    <div class="gcard"><div id="gchart"><div class="empty" style="padding:30px">${T('loading')}</div></div>
+    <div class="seg seg-s" id="gper2" style="margin:10px 0 0">${perBtns()}</div></div><div class="lbrow"><button class="buy rp" id="buy-gift">${T('buy')}</button><button class="favb rp ${U.isFav('gift', gift) ? 'on' : ''}" id="fav" ${favAttr({ kind: 'gift', gift })} aria-label="Favorite">${STAR}</button></div>`;
 }
 async function drawGiftChart(gift) {
   const id = viewId, box = $('#gchart');
@@ -550,19 +593,25 @@ async function drawGiftChart(gift) {
   if (id !== viewId) return;
   const fl = cropHour(h.floors.map(p => ({ t: p.ts, v: p.price_ton })), gcDays), sl = cropHour(h.sales.map(p => ({ t: p.ts, v: p.price_ton })), gcDays);
   const cur = h.now ? { t: h.now.ts, v: h.now.price_ton } : null;
+  { const c = $('#gchg'), base = fl.length > 1 ? fl[0].v : null, nowP = cur ? cur.v : (fl.length ? fl[fl.length - 1].v : null);
+    if (c) c.innerHTML = base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2)) : '—'; }
   box.innerHTML = fl.concat(sl, cur ? [cur] : []).length < 2 ? '<div class="empty" style="padding:30px">' + T('chart_few') + '</div>'
-    : chartSvg(fl, sl, 170, cur) + `<div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${fl.length > 1 && Math.max(...fl.map(p => p.v)) === Math.min(...fl.map(p => p.v)) ? T('flat') : ''}${fl.length > 1 ? T('leg_line_gift') : ''}${sl.length ? T('leg_green') : ''}${T('leg_white')}</div>`;
+    : chartSvg(fl, sl, chartH(), cur);
 }
 
 function modelsView(rows, gift, subFn, title, withFilters, fav) {
-  mount(`<div>${topbar(esc(title), gift ? img_(gift) : null, fav || (gift ? { kind: 'gift', gift } : null))}${gift ? giftHead(gift) : ''}<input class="search" placeholder="${T('search_model')}" id="q">
+  mount(`<div>${gift ? '' : topbar(esc(title), null, fav)}${gift ? giftHead(gift) : ''}<input class="search" placeholder="${T('search_model')}" id="q">
     ${withFilters ? `<div class="fsel"><select id="f-gift"></select><select id="f-model"></select></div>` : ''}
     <div class="seg" id="msort"><button class="rp" data-v="price">Цена</button>${gift ? '' : '<button class="rp" data-v="cap">Капа</button>'}<button class="rp" data-v="rarity">Редкость</button></div>
     <div id="list"></div></div>`);
   setBack(stack.length ? goBack : null);
+  if (gift) $('#app').classList.add('noglow');
   if (gift) {
     document.querySelectorAll('#gper2 button').forEach(b => b.onclick = () => { gcDays = +b.dataset.v; drawGiftChart(gift); });
     $('#buy-gift').onclick = () => openBuy(gift);
+    const nb = giftNeighbors(gift);
+    $('#gprev').style.visibility = nb.prev ? 'visible' : 'hidden'; $('#gnext').style.visibility = nb.next ? 'visible' : 'hidden';
+    $('#gprev').onclick = () => stepGift(-1); $('#gnext').onclick = () => stepGift(1);
     drawGiftChart(gift);
   }
   const fv = { gift: '', model: '' };
@@ -578,12 +627,20 @@ function modelsView(rows, gift, subFn, title, withFilters, fav) {
   let animate = true, shown = [];
   const draw = () => {
     const q = $('#q').value.toLowerCase();
-    document.querySelectorAll('#msort button').forEach(b => {
-      const on = b.dataset.v === modelSort.key; b.classList.toggle('on', on);
-      b.innerHTML = T({ price: 'sort_price', cap: 'sort_cap', rarity: 'sort_rarity' }[b.dataset.v]) + arrowBtn(on, modelSort.dir);
-    });
     const words = q.split(/\s+/).filter(Boolean);
     shown = sortBy(rows.filter(m => { const t = (m.name + ' ' + (m.gift || '')).toLowerCase(); return words.every(w => t.includes(w)) && (!fv.gift || m.gift === fv.gift) && (!fv.model || m.name === fv.model); }), MF[modelSort.key], modelSort.dir);
+    document.querySelectorAll('#msort button').forEach(b => {
+      const on = b.dataset.v === modelSort.key; b.classList.toggle('on', on);
+      b.classList.remove('gain', 'loss');  // подсветка выбранной кнопки всегда белая
+      let label = T({ price: 'sort_price', cap: 'sort_cap', rarity: 'sort_rarity' }[b.dataset.v]);
+      const top = shown[0];  // вместо стрелки — значение у самой верхней модели: «Цена 1 224» (самая дорогая или самая дешёвая), «Редкость 0.5%»
+      if (on && top) {
+        if (b.dataset.v === 'price' && top.floor_ton != null) label += ' ' + fmt(top.floor_ton) + GEM;
+        else if (b.dataset.v === 'cap' && top.cap_ton != null) label += ' ' + fmtK(top.cap_ton) + GEM;
+        else if (b.dataset.v === 'rarity' && top.rarity_permille != null) label += ' ' + +(top.rarity_permille / 10).toFixed(1) + '%';
+      }
+      b.innerHTML = label;
+    });
     renderList(box, shown, (m, i, anim) => modelRow(m, gift || m.gift, subFn(m), i, anim), animate);
     animate = false;
   };
@@ -594,7 +651,8 @@ function modelsView(rows, gift, subFn, title, withFilters, fav) {
   };
   document.querySelectorAll('#msort button').forEach(b => b.onclick = () => {
     modelSort = b.dataset.v === modelSort.key ? { key: modelSort.key, dir: -modelSort.dir } : { key: b.dataset.v, dir: 1 };
-    animate = true; draw(); view.scrollTop = 0;
+    const y = view.scrollTop;  // страница не прыгает вверх: остаёмся там, где нажали
+    animate = false; draw(); view.scrollTop = y;
   });
   $('#q').oninput = draw;
   if (withFilters) {
@@ -850,12 +908,16 @@ function openLink(url) {
   catch (e) { window.open(url, '_blank'); }
 }
 // сколько штук модели существует: тираж подарка × доля модели (доля задана с точностью до 0.1%, поэтому число примерное)
+function modelQty(gift, m) {  // сколько штук модели существует: тираж улучшенных × доля модели
+  const g = giftsCache?.find(x => x.name === gift), n = g && (g.upgraded || g.supply);
+  return n && m.rarity_permille > 0 ? Math.round(n * m.rarity_permille / 1000) : null;
+}
 function modelCount(gift, m) {
   const g = giftsCache?.find(x => x.name === gift), n = g && (g.upgraded || g.supply);
   return n && m.rarity_permille > 0 ? ` · ${fmtS(Math.round(n * m.rarity_permille / 1000))} ${T('pcs')}` : '';
 }
 let buyToken = 0;
-function openBuy(giftName, modelName) {
+function openBuy(giftName, modelName, modelPrice) {
   const g = giftsCache?.find(x => x.name === giftName), base = modelName ? {} : (g?.markets || {}), tok = ++buyToken;
   const render = live => {
     const lm = live?.markets || {};
@@ -865,9 +927,10 @@ function openBuy(giftName, modelName) {
     const lots = (live?.items || []).slice(0, 5);
     $('#sheet-panel').innerHTML = `<div class="sh-h"><div><div class="sh-t">${T('buy_title')}</div><div class="s" style="color:var(--mute)">${esc(giftName)}${modelName ? ' · ' + esc(modelName) : ''}</div></div>
         <button id="sh-x" class="rp" aria-label="x">×</button></div>` +
+      (modelName && modelPrice != null && !best ? `<div class="mprice">${T('model_price')}: <b>${fmt(modelPrice)}${GEM}</b></div>` : '') +
       rows.map(r => `<button class="mk rp ${r === best ? 'best' : ''}" data-u="${esc(r.url)}"><img class="mk-i" src="/m/${r.id}.jpg" alt="">
         <span class="mk-n">${T('buy_on')} ${r.name}${r === best ? `<em>${T('best')}</em>` : ''}</span>
-        <span class="mk-p">${r.price != null ? fmt(r.price) + GEM : `<span class="fl" style="font-size:13px">${live ? T('no_lots') : T('no_price')}</span>`}</span></button>`).join('') +
+        <span class="mk-p">${r.price != null ? fmt(r.price) + GEM : `<span class="fl" style="font-size:13px">${live?.ok ? T('no_lots') : T('no_price')}</span>`}</span></button>`).join('') +
       (lots.length ? `<div class="lots-t">${T('lots')}${live.total ? ' · ' + live.total : ''}</div>` + lots.map(l => `<button class="lot rp" data-u="${esc(l.url)}">
         <span class="lot-n">#${l.number}</span><span class="lot-d">${esc([modelName ? null : l.model, l.pattern, l.backdrop].filter(Boolean).join(' · '))}</span>
         <span class="lot-m">${esc((MARKETS.find(m => m.id === l.market) || { name: l.market }).name)}</span><span class="lot-p">${fmt(l.price)}${GEM}</span></button>`).join('') : '') +
@@ -875,6 +938,10 @@ function openBuy(giftName, modelName) {
   };
   render(null);
   $('#sheet').classList.add('show'); hap();
+  // живые цены по маркетам для этой модели/подарка (если источник сейчас доступен); один раз после открытия
+  api('/live?gift=' + encodeURIComponent(giftName) + (modelName ? '&model=' + encodeURIComponent(modelName) : ''))
+    .then(v => { if (tok === buyToken && $('#sheet').classList.contains('show') && v?.ok) render(v); })
+    .catch(() => {});
 }
 $('#sheet').onclick = e => {
   const mk = e.target.closest('.mk');
@@ -902,35 +969,62 @@ function showLb(idx, dir) {
   im.style.visibility = 'visible'; im.removeAttribute('src');
   im.src = mimg(gift, m.name, true);
   $('#lb-t').textContent = gift + ' · ' + m.name;
-  $('#lb-s').innerHTML = `${T('price_l')} <b>${fmt(m.floor_ton)} GRAM</b>${m.price_src === 'sale' ? ' (' + T('from_sale') + ')' : ''}` +
-    `<br>${T('rarity_c')} ${m.rarity_permille != null ? m.rarity_permille / 10 + '%' : '—'}${modelCount(gift, m)}`;
+  const qn = modelQty(gift, m);
+  $('#lb-s').innerHTML = `<div class="gstats"><div class="gst"><span>${T('b_price')}</span><b id="lb-price">${fmt(m.floor_ton)}${GEM}</b></div><div class="gst"><span>${T('b_change')}</span><b id="lb-chg">—</b></div>
+    <div class="gst"><span>${T('b_rarity')}</span><b>${m.rarity_permille != null ? +(m.rarity_permille / 10).toFixed(1) + '%' : '—'}</b></div><div class="gst"><span>${T('b_qty')}</span><b>${qn != null ? fmtS(qn) : '—'}</b></div></div>`;
   const many = lbList.length > 1;
   $('#lb-pos').textContent = many ? `${idx + 1} / ${lbList.length}` : '';
-  $('#lb-prev').style.visibility = many && idx > 0 ? 'visible' : 'hidden';
-  $('#lb-next').style.visibility = many && idx < lbList.length - 1 ? 'visible' : 'hidden';
+  $('#lb-prev').style.visibility = many ? 'visible' : 'hidden';
+  $('#lb-next').style.visibility = many ? 'visible' : 'hidden';
   drawLb();
+  setTimeout(() => lbPrefetch(idx), 250);
 }
 function lbStep(d) {
-  const n = lbIdx + d;
-  if (n < 0 || n >= lbList.length) { hap('rigid'); return; }  // дальше листать некуда
+  if (lbList.length < 2) return;
+  const n = (lbIdx + d + lbList.length) % lbList.length;  // по кругу: после последней модели снова первая
   hap('light'); showLb(n, d);
+}
+const lbHistCache = new Map();
+const lbHistory = (gift, name, days) => {  // история модели с кэшем: повторные открытия и соседние модели грузятся мгновенно
+  const k = gift + '|' + name + '|' + days;
+  if (!lbHistCache.has(k)) {
+    const p = api(`/gifts/${encodeURIComponent(gift)}/models/${encodeURIComponent(name)}/history?days=${days}`);
+    p.catch(() => lbHistCache.delete(k));
+    lbHistCache.set(k, p);
+    if (lbHistCache.size > 120) lbHistCache.delete(lbHistCache.keys().next().value);
+  }
+  return lbHistCache.get(k);
+};
+function lbPrefetch(idx) {  // заранее грузим картинки и графики двух соседних моделей в каждую сторону
+  [1, -1, 2, -2].forEach(d => {
+    const it = lbList[idx + d]; if (!it) return;
+    try { const im = new Image(); im.src = mimg(it.gift, it.m.name, true); } catch (e) {}
+    lbHistory(it.gift, it.m.name, Math.ceil(lbDays)).catch(() => {});
+  });
 }
 async function drawLb() {
   const { gift, m } = lbState, box = $('#lb-chart');
   document.querySelectorAll('#lb-per button').forEach(b => b.classList.toggle('on', +b.dataset.v === lbDays));
   box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('loading') + '</div>';
+  { const c = $('#lb-chg'); if (c) c.innerHTML = '—'; const pr = $('#lb-price'); if (pr) pr.classList.remove('pgn', 'pls'); }
   let h;
-  try { h = await api(`/gifts/${encodeURIComponent(gift)}/models/${encodeURIComponent(m.name)}/history?days=${Math.ceil(lbDays)}`); }
+  try { h = await lbHistory(gift, m.name, Math.ceil(lbDays)); }
   catch (e) { if (lbState.m === m) box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('chart_fail') + '</div>'; return; }
   if (lbState.m !== m) return;  // пока грузилось, переключились на другую модель
   const fl = cropHour(h.floors.map(p => ({ t: p.ts, v: p.price_ton })), lbDays), sl = cropHour(h.sales.map(p => ({ t: p.ts, v: p.price_ton })), lbDays);
+  { // изменение цены за выбранный период (по снимкам цены): первая точка периода против текущей цены
+    const c = $('#lb-chg'), base = fl.length > 1 ? fl[0].v : null, nowP = m.floor_ton ?? (fl.length ? fl[fl.length - 1].v : null);
+    if (c) c.innerHTML = base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2)) : '—';
+    const pr = $('#lb-price'), pct = base && nowP != null ? (nowP / base - 1) * 100 : 0;  // цена зелёная, если выросла за период, красная, если упала
+    if (pr) { pr.classList.toggle('pgn', pct > 0); pr.classList.toggle('pls', pct < 0); }
+  }
   if (fl.concat(sl).length < 2) { box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('chart_few') + '</div>'; return; }
-  box.innerHTML = chartSvg(fl, sl, 150) +
-    `<div class="s" style="color:var(--mute);font-size:12px;margin-top:4px">${fl.length > 1 && Math.max(...fl.map(p => p.v)) === Math.min(...fl.map(p => p.v)) ? T('flat') : ''}${fl.length > 1 ? T('leg_line') : ''}${sl.length ? T('leg_dots') : ''}</div>`;
+  box.innerHTML = chartSvg(fl, sl, chartH(), m.floor_ton != null ? { t: Date.now() / 1000, v: m.floor_ton } : null);
 }
 // график с осями: подписи времени подбираются по длине периода (часы, дни, месяцы, годы)
+const chartH = () => Math.round(Math.max(130, Math.min(230, innerHeight * 0.27)));  // одна высота графика у коллекции и у модели
 function chartSvg(fl, sl, H, cur) {
-  const all = fl.concat(sl, cur ? [cur] : []);
+  const all = fl.length > 1 ? fl.concat(cur ? [cur] : []) : fl.concat(sl, cur ? [cur] : []);  // шкала по линии цены, продажи её не растягивают
   const t0 = Math.min(...all.map(p => p.t)), t1 = Math.max(...all.map(p => p.t));
   let lo = Math.min(...all.map(p => p.v)), hi = Math.max(...all.map(p => p.v));
   if (hi === lo) { lo *= 0.97; hi *= 1.03; }  // цена не менялась — шкала с запасом, линия по центру
@@ -949,13 +1043,14 @@ function chartSvg(fl, sl, H, cur) {
     `<text x="${L - 6}" y="${(y(v) + 4).toFixed(1)}" fill="#8a8a90" font-size="11" text-anchor="end">${fmtK(v)}</text>`).join('');
   const xt = ticks.map((t, i) => `<line x1="${x(t).toFixed(1)}" y1="${T}" x2="${x(t).toFixed(1)}" y2="${H - B}" stroke="#151517"/>` +
     `<text x="${x(t).toFixed(1)}" y="${H - 6}" fill="#8a8a90" font-size="11" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${tfmt(t)}</text>`).join('');
-  const line = fl.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
-  const dots = sl.map(p => `<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.6" fill="#2ecc71"/>`).join('');
-  const now = cur ? `<circle cx="${x(cur.t).toFixed(1)}" cy="${y(cur.v).toFixed(1)}" r="4.5" fill="#fff" stroke="#ff2fb9" stroke-width="2"/>` : '';
+  const pts = cur && fl.length ? fl.concat([cur]) : fl;  // линия доходит до текущей цены, отдельной точки нет
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(1)},${y(p.v).toFixed(1)}`).join('');
+  const dots = '';  // зелёные точки продаж не рисуем: на графике только линия цены
+  const now = '';  // белую точку «цена сейчас» убрали: линия сама доходит до текущей цены
   const gid = 'cg' + Math.random().toString(36).slice(2, 7);
-  const area = fl.length > 1 ? `<path d="${line}L${x(fl[fl.length - 1].t).toFixed(1)},${H - B}L${x(fl[0].t).toFixed(1)},${H - B}Z" fill="url(#${gid})"/>` : '';
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff2fb9" stop-opacity=".28"/><stop offset="1" stop-color="#ff2fb9" stop-opacity="0"/></linearGradient></defs>${xt}${grid}${area}` +
-    `${fl.length > 1 ? `<path d="${line}" fill="none" stroke="#ff2fb9" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}${dots}${now}</svg>`;
+  const area = pts.length > 1 ? `<path d="${line}L${x(pts[pts.length - 1].t).toFixed(1)},${H - B}L${x(pts[0].t).toFixed(1)},${H - B}Z" fill="url(#${gid})"/>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".16"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs>${xt}${grid}${area}` +
+    `${pts.length > 1 ? `<path d="${line}" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255,255,255,.65))"/>` : ''}${dots}${now}</svg>`;
 }
 document.querySelectorAll('#lb-per button').forEach(b => b.onclick = e => { e.stopPropagation(); lbDays = +b.dataset.v; drawLb(); });
 $('#lb-prev').onclick = e => { e.stopPropagation(); lbStep(-1); };
@@ -963,8 +1058,29 @@ $('#lb-next').onclick = e => { e.stopPropagation(); lbStep(1); };
 $('#lb-ctl').onclick = e => e.stopPropagation();
 $('#lb-close').onclick = () => $('#lb').classList.remove('show');
 $('#lb-fav').onclick = e => { e.stopPropagation(); U.toggle('model', lbState.gift, lbState.m.name); };
-$('#lb-buy').onclick = e => { e.stopPropagation(); openBuy(lbState.gift, lbState.m.name); };
-$('#lb').onclick = () => $('#lb').classList.remove('show');
+$('#lb-buy').onclick = e => { e.stopPropagation(); openBuy(lbState.gift, lbState.m.name, lbState.m.floor_ton); };
+// нажатие на картинку, название и пустое место карточки ничего не делает: закрывает только кнопка «Назад»
+$('#lb').onclick = e => { e.stopPropagation(); };
+// страница подарка: листание коллекций (свайп или стрелки) в том порядке, как они стояли в списке
+const giftNeighbors = g => {  // по кругу: после последней коллекции снова первая
+  const order = giftOrder.includes(g) && giftOrder.length > 1 ? giftOrder : sortBy(giftsCache || [], GSORT[giftSort.key], giftSort.dir).map(x => x.name), i = order.indexOf(g), n = order.length;
+  return i < 0 || n < 2 ? { prev: null, next: null } : { prev: order[(i - 1 + n) % n], next: order[(i + 1) % n] };
+};
+function stepGift(dir) {
+  if (cur.name !== 'models' || !cur.arg) return;
+  const nb = giftNeighbors(cur.arg), nxt = dir > 0 ? nb.next : nb.prev;
+  if (!nxt) return;
+  hap('light'); cur = { name: 'models', arg: nxt }; restoreState = null; view.scrollTop = 0; routes.models(nxt);
+}
+let gSwipe = null;
+view.addEventListener('touchstart', e => { const t = e.touches[0]; gSwipe = { x: t.clientX, y: t.clientY, t: Date.now() }; }, { passive: true });
+view.addEventListener('touchend', e => {
+  const st = gSwipe; gSwipe = null;
+  if (!st || cur.name !== 'models' || !cur.arg || $('#lb').classList.contains('show') || $('#sheet').classList.contains('show')) return;
+  const t = e.changedTouches[0], dx = t.clientX - st.x, dy = t.clientY - st.y;
+  if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2) return;
+  stepGift(dx < 0 ? 1 : -1);
+}, { passive: true });
 // свайп влево/вправо переключает модель; вертикальная прокрутка не мешает
 let swipe = null;
 $('#lb').addEventListener('touchstart', e => { const t = e.touches[0]; swipe = { x: t.clientX, y: t.clientY }; }, { passive: true });
@@ -987,7 +1103,7 @@ function countUp(el, to, f) {
 }
 async function showCap() {
   const id = mount(`<div>${topbar(T('title_cap'))}
-    <div class="seg" id="cur"><button class="rp" data-v="usd">USD</button><button class="rp" data-v="gram">GRAM</button></div>
+    <div class="seg" id="cur"><button class="rp" data-v="gram">GRAM</button><button class="rp" data-v="usd">USD</button></div>
     <div id="body"></div>
     <div class="seg" id="per" style="margin-top:14px">${perBtns()}</div>${FOOT}</div>`);
   const mark = () => {
@@ -1103,8 +1219,9 @@ async function showProfile() {
   if (rs) view.scrollTo({ top: rs.scroll, behavior: 'instant' });
 }
 // «Поделиться» из профиля: портфель, избранные модели, подарки или сэты уходят текстом со ссылкой на бота
+const shareLink = (text, link) => 'https://t.me/share/url?url=' + encodeURIComponent(text) + '&text=' + encodeURIComponent(link);  // сначала текст, ссылка на бота внизу
 function shareOut(text) {
-  const url = BOT_LINK, full = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text.slice(0, 3500));
+  const url = BOT_LINK, full = shareLink(text.slice(0, 3500), url);
   try { if (tg?.openTelegramLink) { tg.openTelegramLink(full); return; } } catch (e) {}
   try { if (navigator.share) { navigator.share({ url, text }); return; } } catch (e) {}
   window.open(full, '_blank');
@@ -1119,7 +1236,7 @@ async function shareSheet() {
     $('#sheet-panel').querySelectorAll('[data-k]').forEach(b => b.onclick = async e => {
       e.stopPropagation(); if (b.classList.contains('dis')) return; hap();
       const k = b.dataset.k, hd = T('sh_head');
-      let text = T('title_gifts');
+      let text = T('app_tag');
       try {
         if (k === 'mine') {
           const d = mineCache || await api('/my-gifts');
@@ -1167,7 +1284,7 @@ async function drawMine(body, id, quiet) {
   if (!quiet) body.innerHTML = `<div class="empty">${T('loading')}</div>`;
   if (!U.auth) { body.innerHTML = `<div class="empty">${T('mine_tg')}</div>`; return; }
   let d = mineCache;
-  try { d = mineCache = await api('/my-gifts'); } catch (e) { if (!d) { body.innerHTML = `<div class="empty">${T('chart_fail')}</div>`; return; } }
+  try { d = mineCache = await api('/my-gifts'); } catch (e) { if (!d) { body.innerHTML = `<div class="empty">${T('chart_fail')}<br><button class="rp cpy" id="mine-retry" style="margin-top:12px">${T('retry')}</button></div>`; $('#mine-retry').onclick = () => drawMine(body, id); return; } }
   await Promise.all([...new Set(d.items.map(x => x.gift))].map(g => modelsOf(g).catch(() => [])));
   if (id !== viewId) return;
   const rows = d.items.map(x => {
@@ -1178,7 +1295,7 @@ async function drawMine(body, id, quiet) {
   }).sort((a, b) => (b.price || 0) - (a.price || 0));
   const total = rows.reduce((a, x) => a + (x.price || 0), 0);
   if (!rows.length) { body.innerHTML = `<div class="empty">${T('mine_empty')}</div>`; return; }
-  body.innerHTML = `<div class="pcard pcmini"><div class="gprice">${fmt(total)} GRAM</div></div><div id="mine-list"></div>`;
+  body.innerHTML = `<div class="pcard pcmini"><div class="gprice">${fmt(total)} GRAM</div><div class="pcnt">${rows.length}</div></div><div id="mine-list"></div>`;
   const box = $('#mine-list');
   renderList(box, rows, (x, i, anim) => `<div class="row rp ${anim ? 'anim' : ''}" data-u="${esc(x.slug ? 'https://t.me/nft/' + x.slug : '')}" ${stagger(i)}><div class="nftimg" style="--c1:${esc(x.c1 || '#222')};--c2:${esc(x.c2 || '#111')}">${imgTag(mimg(x.gift, x.model || ''))}</div><div class="t"><div class="n">${esc(x.model || x.gift)}${x.model_r != null ? ' <span class="no">' + x.model_r / 10 + '%</span>' : ''}</div><div class="s">${esc(x.gift)} <span class="no">#${x.number}</span></div></div><div class="p">${fmt(x.price)}${GEM}</div></div>`, true);
   
@@ -1318,14 +1435,13 @@ async function drawAlerts(body, id) {
 
 function drawDonate(body) {
   const amts = [50, 100, 250, 500, 1000];
-  body.innerHTML = `<div class="pcard"><div class="n" style="font-size:17px;font-weight:800">${T('dn_title')}</div><div class="s" style="color:var(--mute);margin-top:4px">${T('dn_text')}</div></div>
-    <div class="lots-t">${T('dn_stars')}</div>
+  body.innerHTML = `<div class="dn-t">${T('dn_text')}</div>
     <div class="seg seg-s" id="dn-amts">${amts.map(a => `<button class="rp" data-v="${a}">${a}</button>`).join('')}</div>
-    <div class="frm" style="margin-top:8px"><input id="dn-v" type="number" inputmode="numeric" min="1" max="10000" step="1" value="100" placeholder="${T('dn_amount')}"><button class="buy rp" id="dn-go">${T('dn_send')}</button></div>
-    <div class="lots-t">${T('dn_crypto')}</div>
-    <div class="pcard"><div class="s" style="color:var(--mute)">${T('dn_addr')}</div><div class="addr" id="dn-addr">${WALLET}</div><button class="rp cpy" id="dn-copy">${T('dn_copy')}</button></div>
-    <div class="frm"><button class="buy rp" data-ton="gram">${T('dn_gram')}</button><button class="buy rp alt" data-ton="usdt">${T('dn_usdt')}</button></div>
-    <div class="sh-note">${T('dn_note')}</div>`;
+    <div class="dn-row"><input id="dn-v" type="number" inputmode="numeric" min="1" max="10000" step="1" value="100" placeholder="${T('dn_amount')}"><button class="buy rp" id="dn-go">${T('dn_send')}</button></div>
+    <div class="dn-sep">${T('dn_crypto')}</div>
+    <div class="dn-addr"><div class="addr" id="dn-addr">${WALLET}</div><button class="rp cpy" id="dn-copy">${T('dn_copy')}</button></div>
+    <button class="buy rp" id="dn-gram" data-ton="gram">${T('dn_gram')}</button>
+    <div class="sh-note" style="margin-top:8px">${T('dn_note')}</div>`;
   document.querySelectorAll('#dn-amts button').forEach(b => b.onclick = () => { $('#dn-v').value = b.dataset.v; hap(); });
   $('#dn-go').onclick = async () => {
     const n = Math.round(+$('#dn-v').value); if (!(n >= 1 && n <= 10000)) return; hap();
@@ -1337,7 +1453,7 @@ function drawDonate(body) {
   };
   $('#dn-copy').onclick = async () => { hap(); try { await navigator.clipboard.writeText(WALLET); $('#dn-copy').textContent = T('dn_copied'); setTimeout(() => $('#dn-copy') && ($('#dn-copy').textContent = T('dn_copy')), 1500); } catch (e) {} };
   body.onclick = e => { const b = e.target.closest('[data-ton]'); if (!b) return; hap();
-    const url = 'ton://transfer/' + WALLET + (b.dataset.ton === 'usdt' ? '?jetton=' + USDT_JETTON : '');
+    const url = 'ton://transfer/' + WALLET;
     try { window.open(url, '_blank'); } catch (err) { location.href = url; } };
 }
 
@@ -1346,7 +1462,7 @@ const BOT_LINK = 'https://t.me/gift20bot';
 function sharePayload() {
   if (cur.name === 'models' && cur.arg) return { p: 'g_' + short(cur.arg), text: cur.arg };
   if (cur.name === 'theme' && cur.arg) return { p: 't_' + cur.arg, text: (themesCache?.find(t => t.id === cur.arg)?.[LANG === 'en' ? 'title_en' : 'title']) || cur.arg };
-  return { p: '', text: T('title_gifts') };
+  return { p: '', text: T('app_tag') };
 }
 async function shareCurrent() {
   const { p, text } = sharePayload(), url = BOT_LINK + (p ? '?start=' + p : '');
@@ -1358,9 +1474,9 @@ async function shareCurrent() {
       if (r.ok) { const j = await r.json(); tg.shareMessage(j.id); return; }
     } catch (e) {}
   }
-  const full = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text);
+  const full = shareLink(text, url);
   try { if (tg?.openTelegramLink) { tg.openTelegramLink(full); return; } } catch (e) {}
-  try { if (navigator.share) { navigator.share({ url, text }); return; } } catch (e) {}
+  try { if (navigator.share) { navigator.share({ text: text + '\n' + url }); return; } } catch (e) {}
   window.open(full, '_blank');
 }
 document.addEventListener('click', e => { if (e.target.closest('#share')) shareCurrent(); });

@@ -81,13 +81,12 @@ THEMES = [
     # камни и цвета: по слову в названии модели
     ("ruby", "Ruby", "ruby", []),
     ("amethyst", "Amethyst", "amethyst|purple|violet|lilac|lavender|plum|grape|orchid", []),
-    ("obsidian", "Obsidian", "obsidian", []),
     ("emerald", "Emerald",
      "emerald|aquamarine|jade|malachite|peridot|beryl|tourmaline|jasper|chrysoprase|aventurine|greenstone|moss agate|green|lime|olive|moss|forest", []),
     ("silver", "Silver", "silver", []),
     ("sapphire", "Sapphire", "sapphire|sapphires|blue|navy|cobalt|indigo|denim", []),
     ("topaz", "Topaz", "topaz", []),
-    ("black", "Black", "black|jet black|matte black", []),
+    ("black", "Black", "black|jet black|matte black|obsidian", []),
     ("rose", "Rose", "rose|roses|rosegold|pink|blush|bubblegum|fuchsia|magenta|barbie", []),
     ("diamond", "Diamond", "diamond|diamonds", []),
     ("red", "Red", "red", []),
@@ -97,7 +96,7 @@ THEMES = [
 GROUPS = {
     "pets": ["pepe", "ducks", "cats", "dogs", "birds", "bears", "bunnies", "monkeys", "snakes", "dragons", "pigeons",
              "sea", "insects", "pigs"],
-    "gems": ["gold", "gems", "ruby", "amethyst", "obsidian", "emerald", "silver", "sapphire", "topaz", "black",
+    "gems": ["gold", "gems", "ruby", "amethyst", "emerald", "silver", "sapphire", "topaz", "black",
              "rose", "diamond", "red", "yellow", "white", "platinum", "orange", "bronze", "brown", "rainbow", "aqua"],
     "status": ["bags", "rings", "glasses", "cars", "watches", "cigars"],
 }
@@ -109,7 +108,7 @@ _ORDER["adult"] = (9, -1)  # 18+ первым среди остальных
 THEMES.sort(key=lambda t: _ORDER.get(t[0], (9, 0)))
 
 # отдельные модели, добавленные в тему вручную: тема -> {(подарок, модель)}
-INCLUDE = {"pepe": {("Liberty Figure", "Plushie")}, "obsidian": {("Spring Basket", "Nocturne")}, "pigeons": {("Surge Board", "French Riviera")}}
+INCLUDE = {"pepe": {("Liberty Figure", "Plushie")}, "black": {("Spring Basket", "Nocturne")}, "pigeons": {("Surge Board", "French Riviera")}}
 
 
 
@@ -128,7 +127,7 @@ TITLES_EN = {
     "flowers": "Flowers", "love": "Love", "heroes": "Warriors & Heroes", "tech": "Cyberpunk",
     "gold": "Gold", "cigars": "Cigars", "cars": "Cars", "adult": "18+", "figures": "Figurines",
     "cakes": "Cakes", "watches": "Watches", "bags": "Bags", "rings": "Rings", "gems": "Gems", "party": "Party",
-    "ruby": "Ruby", "amethyst": "Amethyst", "obsidian": "Obsidian", "emerald": "Emerald", "silver": "Silver",
+    "ruby": "Ruby", "amethyst": "Amethyst", "emerald": "Emerald", "silver": "Silver",
     "sapphire": "Sapphire", "topaz": "Topaz", "black": "Black", "rose": "Rose",
     "diamond": "Diamond", "red": "Red",
     "pigeons": "Pigeons", 

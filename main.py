@@ -20,6 +20,7 @@ import images
 import themes
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)  # httpx пишет полный адрес запроса, а в адресе Bot API лежит токен бота: в журнал это не попадает
 WEB = Path(__file__).parent / "web"
 
 
@@ -29,6 +30,12 @@ async def keep_warm():
         try:
             await gifts()
             await api_themes()
+            await all_models()
+            # тяжёлый расчёт «изменений моделей» обновляем заранее, пока кэш ещё не истёк, чтобы пользователь его не ждал
+            if time.time() - _mc_cache["t"] > 420:
+                async with _mc_lock:
+                    if time.time() - _mc_cache["t"] > 420:
+                        await _model_changes_compute()
         except Exception as e:
             logging.warning("warm: %s", e)
         await asyncio.sleep(10)
@@ -45,6 +52,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(collectors.run_forever(collectors.collect_marketcap_estimate, 60, "marketcap-est")),
         asyncio.create_task(collectors.run_forever(collectors.collect_floors, 300, "floors")),
         asyncio.create_task(collectors.run_forever(collectors.collect_peek, 900, "peek")),
+        asyncio.create_task(collectors.run_forever(collectors.collect_peek_models, 3 * 3600, "peek-models")),
         asyncio.create_task(collectors.run_forever(collectors.collect_issued, 12 * 3600, "issued")),
         asyncio.create_task(collectors.run_forever(collectors.collect_sales, 30, "sales")),
         asyncio.create_task(collectors.run_forever(collectors.prewarm_images, 900, "images")),
@@ -494,6 +502,22 @@ def verify_init_data(raw: str) -> int | None:
         return None
 
 
+OWNER_ID = int(os.getenv("OWNER_ID", "7308147004"))
+
+
+async def notify_owner(uid: int, username: str | None, name: str, src: str):
+    """Сообщение владельцу бота о новом пользователе (в чат с ботом)."""
+    if uid == OWNER_ID:
+        return
+    who = f"@{username}" if username else (name or str(uid))
+    text = f"Новый юзер {who}"
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            await c.post(f"https://api.telegram.org/bot{os.getenv('BOT_TOKEN', '')}/sendMessage", json={"chat_id": OWNER_ID, "text": text})
+    except Exception as e:
+        logging.warning("notify_owner: %s", e)
+
+
 async def current_user(request: Request) -> int:
     uid = verify_init_data(request.headers.get("x-init-data", ""))
     if uid is None:
@@ -504,9 +528,16 @@ async def current_user(request: Request) -> int:
     except Exception:
         pass
     async with db.connect() as conn:
+        is_new = await (await conn.execute("SELECT 1 FROM users WHERE tg_id = ?", (uid,))).fetchone() is None
         await conn.execute("INSERT INTO users (tg_id, first_ts, last_ts, lang) VALUES (?,?,?,?) ON CONFLICT(tg_id) DO UPDATE SET last_ts=excluded.last_ts, lang=excluded.lang",
                            (uid, int(time.time()), int(time.time()), lang))
         await conn.commit()
+    if is_new:  # новый пользователь приложения: сообщение владельцу в чат бота
+        try:
+            u = _json.loads(dict(parse_qsl(request.headers["x-init-data"])).get("user", "{}"))
+        except Exception:
+            u = {}
+        asyncio.create_task(notify_owner(uid, u.get("username"), " ".join(x for x in (u.get("first_name"), u.get("last_name")) if x), "app"))
     return uid
 
 
@@ -553,12 +584,17 @@ async def fill_bd_prices(keys: list):
                 if r.status_code in (403, 429) or r.status_code >= 500:
                     _bd_state["cool"] = time.time() + 900  # закрыли или лимит: не трогаем 15 минут
                     return
-                price = None
+                price, prices = None, []
                 for x in r.json().get("results", []):
                     mp = x.get("market") or {}
                     if mp.get("asset") in (None, "TON") and isinstance(mp.get("price"), (int, float)):
-                        price = float(mp["price"])
-                        break
+                        prices.append(float(mp["price"]))
+                if prices:
+                    price = min(prices)
+                    floor = (await effective_floors()).get(gift, {}).get(model, (None, None))[0]
+                    # одиночный завышенный лот («1000» на модель, которая стоит 4) — не цена; такой лот не берём
+                    if floor and price > 3 * floor and len(prices) < 2:
+                        price = None
                 _bd_price[(gift, model, backdrop)] = (time.time(), price)
                 async with db.connect() as conn:
                     await conn.execute("INSERT OR REPLACE INTO bd_prices VALUES (?,?,?,?,?)", (gift, model, backdrop, price, int(time.time())))
@@ -745,7 +781,7 @@ async def api_share_prepare(body: ShareIn, request: Request):
               "photo_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}", "thumbnail_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}",
               "photo_width": 1280, "photo_height": 720, "title": title, "description": sub,
               "caption": f"{title}\n{sub}",
-              "reply_markup": {"inline_keyboard": [[{"text": "Открыть" if lang == "ru" else "Open", "url": f"https://t.me/gift20bot?start={start}"}]]}}
+              "reply_markup": {"inline_keyboard": [[{"text": "Open", "url": f"https://t.me/gift20bot?start={start}"}]]}}
     async with httpx.AsyncClient(timeout=20) as c:
         r = await c.post(f"https://api.telegram.org/bot{token}/savePreparedInlineMessage",
                          json={"user_id": uid, "result": result, "allow_user_chats": True, "allow_bot_chats": False,
@@ -865,7 +901,7 @@ async def alerts_loop():
                         url = os.getenv("WEBAPP_URL", "https://gifts.zabeyda.lol") + ("?s=g_" + re.sub(r"[^a-z ]", "", a["gift"].lower()).strip().replace(" ", "_"))
                         r = await c.post(f"https://api.telegram.org/bot{token}/sendMessage", json={
                             "chat_id": a["tg_id"], "text": text,
-                            "reply_markup": {"inline_keyboard": [[{"text": "Open" if not ru else "Открыть", "web_app": {"url": url}}]]}})
+                            "reply_markup": {"inline_keyboard": [[{"text": "Open", "web_app": {"url": url}}]]}})
                         async with db.connect() as conn:  # при любом исходе не повторяем: заблокировавшему бота не пишем снова
                             await conn.execute("UPDATE alerts SET last_fire = ?, active = ? WHERE id = ?", (int(time.time()), 1 if a["cond"] == "change" and r.status_code == 200 else 0, a["id"]))
                             await conn.commit()
@@ -941,6 +977,7 @@ async def api_backdrops():
 
 
 _mc_cache: dict = {"t": 0.0, "v": None}
+_mc_lock = asyncio.Lock()
 MC_PERIODS = {"1h": 1 / 24, "1d": 1, "1w": 7, "1m": 30, "all": None}
 
 
@@ -953,6 +990,13 @@ async def model_changes() -> dict:
     """
     if time.time() - _mc_cache["t"] < 600 and _mc_cache["v"] is not None:
         return _mc_cache["v"]
+    async with _mc_lock:  # пересчёт тяжёлый (читает всю историю цен): одновременные запросы ждут один расчёт, а не запускают свои
+        if time.time() - _mc_cache["t"] < 600 and _mc_cache["v"] is not None:
+            return _mc_cache["v"]
+        return await _model_changes_compute()
+
+
+async def _model_changes_compute() -> dict:
     out: dict[tuple, dict] = {}
 
     def finish(key, s, latest):

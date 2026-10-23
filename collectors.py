@@ -173,6 +173,65 @@ async def collect_issued(client: httpx.AsyncClient) -> None:
     log.info("issued_exact updated: %d/%d", done, len(names))
 
 
+_pm_state = {"first": True, "cool": 0.0}
+
+
+async def collect_peek_models(client: httpx.AsyncClient) -> None:
+    """Цены моделей, которых нет в датасете (Resistance Dog, Durov's Cap и др.): самый дешёвый лот модели по открытому поиску peek.tg.
+
+    Раз в 3 часа, по одной модели с паузой 2,5 с (около 20 минут на проход, ~14 запросов в минуту при лимите 35).
+    Записываем как обычный снимок цены (market='community'), поэтому графики, цены и пузыри работают у этих моделей так же, как у остальных.
+    При 403/429 прекращаем проход и ждём 15 минут.
+    """
+    if _pm_state["first"]:
+        _pm_state["first"] = False
+        await asyncio.sleep(240)
+    if time.time() < _pm_state["cool"]:
+        return
+    async with db.connect() as conn:
+        cur = await conn.execute(
+            """SELECT m.gift, m.name FROM models m
+               WHERE NOT EXISTS (SELECT 1 FROM floors f WHERE f.gift = m.gift AND f.model = m.name AND f.market = 'community'
+                                 AND f.ts > ?)
+               ORDER BY m.gift, m.name""", (now() - 3 * 86400,))
+        todo = [(r["gift"], r["name"]) for r in await cur.fetchall()]
+        # у подарка датасетные цены свежие у большинства моделей — отдельные пропуски (редкие лоты) пропускаем, догоняем только целиком «слепые» подарки
+        cur = await conn.execute("SELECT gift, COUNT(DISTINCT model) n FROM floors WHERE market = 'community' AND model != '' AND ts > ? GROUP BY gift", (now() - 3 * 86400,))
+        have_n = {r["gift"]: r["n"] for r in await cur.fetchall()}
+    cur_tot = {}
+    for g, _ in todo:
+        cur_tot[g] = cur_tot.get(g, 0) + 1
+    todo = [(g, m) for g, m in todo if have_n.get(g, 0) < 5 or cur_tot[g] >= 5]  # слепые подарки целиком; одиночные пропуски других подарков не трогаем
+    headers = {"Origin": "https://peek.tg", "Referer": "https://peek.tg/", "User-Agent": "Mozilla/5.0"}
+    done = 0
+    for gift, model in todo:
+        try:
+            r = await client.get("https://server.peek.tg/api/nft/gifts/search", headers=headers,
+                                 params={"name": re.sub(r"[^A-Za-z]", "", gift), "models": model, "marketOnly": "true",
+                                         "sortBy": "price", "sortOrder": "asc", "page": 1, "limit": 5})
+        except Exception as e:
+            log.warning("peek models %s/%s: %s", gift, model, e)
+            await asyncio.sleep(2.5)
+            continue
+        if r.status_code in (403, 429) or r.status_code >= 500:
+            _pm_state["cool"] = time.time() + 900
+            log.warning("peek models: status %s, pause 15 min", r.status_code)
+            break
+        price = None
+        for x in r.json().get("results", []):
+            mp = x.get("market") or {}
+            if mp.get("asset") in (None, "TON") and isinstance(mp.get("price"), (int, float)):
+                price = float(mp["price"]) if price is None else min(price, float(mp["price"]))
+        if price:
+            async with db.connect() as conn:
+                await conn.execute("INSERT OR REPLACE INTO floors (ts, gift, model, market, price_ton) VALUES (?,?,?,?,?)",
+                                   (now(), gift, model, "community", price))
+                await conn.commit()
+            done += 1
+        await asyncio.sleep(2.5)
+    log.info("peek models: %d/%d priced", done, len(todo))
+
+
 async def collect_peek(client: httpx.AsyncClient) -> None:
     """Сводка с peek.tg: один открытый запрос (без входа в Telegram), раз в 15 минут. Нужна ради issued — числа улучшенных."""
     r = await client.get("https://server.peek.tg/api/nft/stats/gift/all", params={"period": "24h", "sort": "change", "order": "desc", "limit": 500},
