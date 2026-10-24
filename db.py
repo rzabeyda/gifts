@@ -132,6 +132,8 @@ CREATE TABLE IF NOT EXISTS bd_prices (
     PRIMARY KEY (gift, model, backdrop)
 );
 -- история донатов: Stars (из бота) и переводы GRAM/USDT на кошелёк (из tonapi)
+-- коллекции, о которых уже знаем (для сообщения о новых подарках)
+CREATE TABLE IF NOT EXISTS seen_gifts (name TEXT PRIMARY KEY, ts INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS donations (
     id TEXT PRIMARY KEY,
     ts INTEGER NOT NULL,
@@ -167,6 +169,15 @@ async def init() -> None:
             pass
         try:  # язык пользователя для уведомлений (добавлено позже)
             await db.execute("ALTER TABLE users ADD COLUMN lang TEXT")
+        except Exception:
+            pass
+        for col, typ in (("pf_value", "REAL"), ("pf_count", "INTEGER"), ("pf_name", "TEXT"), ("pf_top", "TEXT"), ("pf_ts", "INTEGER")):
+            try:  # снимок коллекции пользователя для ранга и дуэлей (добавлено позже)
+                await db.execute(f"ALTER TABLE users ADD COLUMN {col} {typ}")
+            except Exception:
+                pass
+        try:  # ежедневная сводка по избранному: 1 — включена (добавлено позже)
+            await db.execute("ALTER TABLE users ADD COLUMN digest INTEGER NOT NULL DEFAULT 1")
         except Exception:
             pass
         await db.commit()

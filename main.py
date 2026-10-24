@@ -5,6 +5,7 @@ import re
 import statistics
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -60,6 +61,8 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(cap_snapshots()),
         asyncio.create_task(keep_warm()),
         asyncio.create_task(alerts_loop()),
+        asyncio.create_task(digest_loop()),
+        asyncio.create_task(new_gifts_loop()),
     ]
     yield
     for t in tasks:
@@ -699,7 +702,7 @@ def _load_img(kind: str, a: str, b: str = ""):
     return None
 
 
-def render_card(title: str, sub: str, imgs: list) -> bytes:
+def render_card(title: str, sub: str, imgs: list, accent: tuple = (255, 170, 230)) -> bytes:
     """Картинка 1280x720: чёрный фон, розовое свечение, картинки слева, название и цена справа."""
     from PIL import ImageDraw, ImageFilter
     W, H = 1280, 720
@@ -723,7 +726,7 @@ def render_card(title: str, sub: str, imgs: list) -> bytes:
     x0 = 560 if len(imgs) == 1 else 620
     tw = W - x0 - 70
     d.text((x0, 230), title, font=_fit(d, title, _FONT_B, 76, tw), fill=(255, 255, 255))
-    d.text((x0, 345), sub, font=_fit(d, sub, _FONT_R, 46, tw), fill=(255, 170, 230))
+    d.text((x0, 345), sub, font=_fit(d, sub, _FONT_R, 46, tw), fill=accent)
     d.text((x0, 600), "Gift Hub  \u00b7  @gift20bot", font=_font(_FONT_B, 34), fill=(190, 190, 200))
     buf = io.BytesIO()
     bg.save(buf, "JPEG", quality=88)
@@ -751,11 +754,79 @@ def _card_data(kind: str, key: str, lang: str, gifts_list: list, themes_out: lis
     raise HTTPException(404)
 
 
+RANKS = [(50, "Новичок", "Newbie"), (500, "Коллекционер", "Collector"), (5000, "Эксперт", "Expert"), (50000, "Магнат", "Tycoon"), (float("inf"), "Кит", "Whale")]
+
+
+def rank_name(v: float, ru: bool) -> str:
+    for lim, a, b in RANKS:
+        if v < lim:
+            return a if ru else b
+    return ""
+
+
+def _num(v: float) -> str:
+    return f"{v:,.0f}".replace(",", " ") if v >= 100 else f"{v:g}"
+
+
+async def _card_ext(kind: str, key: str, lang: str):
+    """Карточки без списка подарков: ранг (r) и дуэль (d) пользователя, рост подарка за сутки (u). -> (заголовок, подпись, картинки, deep-link, цвет подписи)"""
+    ru = lang == "ru"
+    if kind in ("r", "d"):
+        rows = await q("SELECT pf_name, pf_value, pf_top FROM users WHERE tg_id = ? AND pf_ts IS NOT NULL", (int(key),)) if key.isdigit() else []
+        if not rows:
+            raise HTTPException(404)
+        v = rows[0]["pf_value"] or 0
+        rk, val = rank_name(v, ru), _num(v)
+        ims = [_load_img("m", images.short(t["gift"]), images.mfile(t["model"])) for t in _json.loads(rows[0]["pf_top"] or "[]")]
+        if kind == "r":
+            return rows[0]["pf_name"] or ("Коллекционер" if ru else "Collector"), f"{rk} · {val} GRAM", ims, "r_" + key, (255, 170, 230)
+        return ("Бросаю вызов" if ru else "Duel challenge"), f"{val} GRAM · {rk}", ims, "d_" + key, (255, 170, 230)
+    g = next((x for x in await gifts() if images.short(x["name"]) == key), None)
+    ch = ((g or {}).get("changes") or {}).get("1d")
+    if g is None or ch is None:
+        raise HTTPException(404)
+    sub = f"{ch:+.1f}%  ·  {_num(g.get('floor_ton') or 0)} GRAM".replace("-", "−")
+    return g["name"], sub, [_load_img("g", key)], "g_" + key, ((60, 230, 130) if ch >= 0 else (255, 90, 90))
+
+
+class SnapIn(BaseModel):
+    value: float
+    count: int
+    name: str = ""
+    top: list[dict] = []
+
+
+@app.post("/api/pf-snapshot")
+async def api_pf_snapshot(body: SnapIn, request: Request):
+    """Снимок стоимости коллекции пользователя (для ранга и дуэлей): считает приложение, по ценам из нашего же API."""
+    uid = await current_user(request)
+    if not (0 <= body.value <= 1e9) or not (0 <= body.count <= 5000):
+        raise HTTPException(400, "bad request")
+    top = [{"gift": str(t.get("gift", ""))[:80], "model": str(t.get("model", ""))[:120]} for t in body.top[:3]]
+    async with db.connect() as conn:
+        await conn.execute("UPDATE users SET pf_value=?, pf_count=?, pf_name=?, pf_top=?, pf_ts=? WHERE tg_id=?",
+                           (body.value, body.count, body.name[:40], _json.dumps(top), int(time.time()), uid))
+        await conn.commit()
+    return {"ok": True}
+
+
+@app.get("/api/duel/{uid}")
+async def api_duel(uid: int, request: Request):
+    await current_user(request)
+    r = await q("SELECT pf_name, pf_value, pf_count FROM users WHERE tg_id = ? AND pf_ts IS NOT NULL", (uid,))
+    if not r:
+        raise HTTPException(404)
+    return {"name": r[0]["pf_name"] or "", "value": r[0]["pf_value"] or 0, "count": r[0]["pf_count"] or 0}
+
+
 @app.get("/card/{kind}/{key}.jpg")
 async def share_card(kind: str, key: str, lang: str = "ru"):
     """Публичная картинка-карточка (её забирает сам Telegram)."""
-    if not re.fullmatch(r"[a-z0-9_\-]{1,64}", key) or kind not in ("g", "s"):
+    if not re.fullmatch(r"[a-z0-9_\-]{1,64}", key) or kind not in ("g", "s", "r", "d", "u"):
         raise HTTPException(404)
+    if kind in ("r", "d", "u"):
+        title, sub, ims, _, accent = await _card_ext(kind, key, "en" if lang == "en" else "ru")
+        return Response(render_card(title, sub, ims, accent), media_type="image/jpeg", headers={"Cache-Control": "public, max-age=120"})
     gl = await gifts() if kind == "g" else []
     th = (await api_themes()) if kind == "s" else None
     title, sub, ims, _ = _card_data(kind, key, "en" if lang == "en" else "ru", gl, th)
@@ -772,16 +843,21 @@ class ShareIn(BaseModel):
 async def api_share_prepare(body: ShareIn, request: Request):
     """Готовое сообщение для окна «поделиться» внутри Telegram: картинка, название, цена и кнопка «Открыть»."""
     uid = await current_user(request)
-    if body.kind not in ("g", "s") or not re.fullmatch(r"[a-z0-9_\-]{1,64}", body.key):
+    if body.kind not in ("g", "s", "r", "d", "u") or not re.fullmatch(r"[a-z0-9_\-]{1,64}", body.key):
         raise HTTPException(400, "bad request")
     token = os.getenv("BOT_TOKEN", "")
     base = os.getenv("WEBAPP_URL", "https://gifts.zabeyda.lol").rstrip("/")
     lang = "en" if body.lang == "en" else "ru"
-    gl = await gifts() if body.kind == "g" else []
-    th = (await api_themes()) if body.kind == "s" else None
-    title, sub, _, start = _card_data(body.kind, body.key, lang, gl, th)
+    if body.kind in ("r", "d", "u"):
+        if body.kind != "u" and body.key != str(uid):
+            raise HTTPException(403, "own profile only")
+        title, sub, _, start, _a = await _card_ext(body.kind, body.key, lang)
+    else:
+        gl = await gifts() if body.kind == "g" else []
+        th = (await api_themes()) if body.kind == "s" else None
+        title, sub, _, start = _card_data(body.kind, body.key, lang, gl, th)
     result = {"type": "photo", "id": hashlib.sha1(f"{body.kind}{body.key}{lang}".encode()).hexdigest()[:24],
-              "photo_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}", "thumbnail_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}",
+              "photo_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}&v={int(time.time())}", "thumbnail_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}&v={int(time.time())}",
               "photo_width": 1280, "photo_height": 720, "title": title, "description": sub,
               "caption": f"{title}\n{sub}",
               "reply_markup": {"inline_keyboard": [[{"text": "Open", "url": f"https://t.me/gift20bot?start={start}"}]]}}
@@ -922,6 +998,120 @@ async def alerts_loop():
         await asyncio.sleep(120)
 
 
+SHARE_URL = "https://t.me/share/url?url=https%3A//t.me/gift20bot&text=" + "%D0%92%D1%81%D1%91%20%D0%BF%D1%80%D0%BE%20Telegram%20Gifts%20%D0%B2%20%D0%BE%D0%B4%D0%BD%D0%BE%D0%B9%20%D0%B0%D0%BF%D0%BA%D0%B5"
+
+
+def _kb(url: str, ru: bool) -> dict:
+    """Кнопки под сообщением бота: Open и справа Поделиться."""
+    return {"inline_keyboard": [[{"text": "Open", "web_app": {"url": url}}, {"text": "Поделиться" if ru else "Share", "url": SHARE_URL}]]}
+
+
+def _fmt_price(p: float) -> str:
+    return f"{p:,.0f}".replace(",", " ") if p >= 100 else f"{p:g}"
+
+
+async def build_digest(uid: int, ru: bool, g_by: dict, eff: dict, mch: dict, idx: dict) -> str | None:
+    """Короткая сводка по избранному пользователя: изменение за сутки, самые заметные сверху."""
+    favs = await q("SELECT kind, gift, model FROM favs WHERE tg_id = ?", (uid,))
+    items = []  # (изменение %, подпись)
+    for f in favs:
+        if f["kind"] == "gift":
+            g = g_by.get(f["gift"])
+            if g and g.get("floor_ton"):
+                items.append(((g.get("changes") or {}).get("1d"), f["gift"], g["floor_ton"]))
+        elif f["kind"] == "model":
+            price = eff.get(f["gift"], {}).get(f["model"], (None, None))[0]
+            if price:
+                items.append(((mch.get((f["gift"], f["model"])) or {}).get("1d"), f"{f['model']} ({f['gift']})", price))
+        else:
+            ms = idx.get(f["gift"], [])
+            ch = sorted(c for c in ((mch.get((x["gift"], x["name"])) or {}).get("1d") for x in ms) if c is not None)
+            prices = [eff[x["gift"]][x["name"]][0] for x in ms if x["name"] in eff.get(x["gift"], {})]
+            if ch and prices:
+                title = themes.TITLES_EN.get(f["gift"]) if not ru else themes.TITLES.get(f["gift"])
+                items.append((ch[len(ch) // 2], (title or f["gift"]) + (" · сэт" if ru else " · set"), min(prices)))
+    items = [i for i in items if i[0] is not None]
+    if not items:
+        return None
+    items.sort(key=lambda i: -abs(i[0]))
+    lines = [f"{c:+.1f}%".replace("-", "−") + f"  {name} · {_fmt_price(p)}" for c, name, p in items[:10]]
+    if len(items) > 10:
+        lines.append(f"... +{len(items) - 10}")
+    head = "Избранное за сутки" if ru else "Favorites, last 24h"
+    tail = "Отключить: /digest" if ru else "Turn off: /digest"
+    return head + "\n\n" + "\n".join(lines) + "\n\n" + tail
+
+
+async def digest_loop():
+    """Каждый день в 18:00 по Москве отправляет сводку по избранному тем, у кого она включена."""
+    tz = timezone(timedelta(hours=3))
+    while True:
+        now = datetime.now(tz)
+        nxt = now.replace(hour=18, minute=0, second=0, microsecond=0)
+        if nxt <= now:
+            nxt += timedelta(days=1)
+        await asyncio.sleep((nxt - now).total_seconds())
+        try:
+            token = os.getenv("BOT_TOKEN", "")
+            users = await q("SELECT DISTINCT f.tg_id, COALESCE(u.lang, 'ru') AS lang FROM favs f JOIN users u ON u.tg_id = f.tg_id WHERE u.digest = 1")
+            if not (users and token):
+                continue
+            g_by = {g["name"]: g for g in await gifts()}
+            eff, mch, idx = await effective_floors(), await model_changes(), await theme_members()
+            async with httpx.AsyncClient(timeout=20) as c:
+                for u in users:
+                    text = await build_digest(u["tg_id"], u["lang"] == "ru", g_by, eff, mch, idx)
+                    if not text:
+                        continue
+                    r = await c.post(f"https://api.telegram.org/bot{token}/sendMessage", json={
+                        "chat_id": u["tg_id"], "text": text,
+                        "reply_markup": _kb(os.getenv("WEBAPP_URL", "https://gifts.zabeyda.lol"), u["lang"] == "ru")})
+                    if r.status_code in (400, 403):  # заблокировал бота: больше не пишем
+                        async with db.connect() as conn:
+                            await conn.execute("UPDATE users SET digest = 0 WHERE tg_id = ?", (u["tg_id"],))
+                            await conn.commit()
+                    await asyncio.sleep(0.1)
+        except Exception as e:
+            logging.warning("digest: %s", e)
+
+
+async def new_gifts_loop():
+    """Раз в 10 минут ищет новые коллекции и сообщает о них тем, у кого включены сообщения бота (/digest)."""
+    await asyncio.sleep(120)
+    while True:
+        try:
+            names = [g["name"] for g in await gifts()]
+            seen = {r["name"] for r in await q("SELECT name FROM seen_gifts")}
+            new = [n for n in names if n not in seen]
+            if new:
+                async with db.connect() as conn:
+                    await conn.executemany("INSERT OR IGNORE INTO seen_gifts (name, ts) VALUES (?, ?)", [(n, int(time.time())) for n in new])
+                    await conn.commit()
+            # первый запуск и сбои каталога (сразу много «новых») — просто запоминаем, не пишем
+            if new and seen and len(new) <= 5:
+                token = os.getenv("BOT_TOKEN", "")
+                g_by = {g["name"]: g for g in await gifts()}
+                users = await q("SELECT tg_id, COALESCE(lang, 'ru') AS lang FROM users WHERE digest = 1")
+                async with httpx.AsyncClient(timeout=20) as c:
+                    for u in users:
+                        ru = u["lang"] == "ru"
+                        for n in new:
+                            g = g_by.get(n, {})
+                            info = " · ".join(x for x in [f"{_fmt_price(g['floor_ton'])} GRAM" if g.get("floor_ton") else "", f"{int(g['supply']):,}".replace(",", " ") if g.get("supply") else ""] if x)
+                            text = ("Новый подарок: " if ru else "New gift: ") + n + ("\n" + info if info else "")
+                            url = os.getenv("WEBAPP_URL", "https://gifts.zabeyda.lol") + "?s=g_" + re.sub(r"[^a-z ]", "", n.lower()).strip().replace(" ", "_")
+                            r = await c.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": u["tg_id"], "text": text, "reply_markup": _kb(url, ru)})
+                            if r.status_code in (400, 403):
+                                async with db.connect() as conn:
+                                    await conn.execute("UPDATE users SET digest = 0 WHERE tg_id = ?", (u["tg_id"],))
+                                    await conn.commit()
+                                break
+                            await asyncio.sleep(0.05)
+        except Exception as e:
+            logging.warning("new gifts: %s", e)
+        await asyncio.sleep(600)
+
+
 class StarsIn(BaseModel):
     amount: int
     message: str = ""
@@ -971,9 +1161,13 @@ async def all_models() -> list:
 
 
 @app.get("/api/models/all")
-async def api_models_all():
-    """Все модели всех подарков, кэш 60 с."""
-    return await all_models()
+async def api_models_all(period: str = ""):
+    """Все модели всех подарков, кэш 60 с. С period (1h, 1d, 1w, 1m, all) к каждой модели добавляется изменение цены за период в %."""
+    rows = await all_models()
+    if period not in MC_PERIODS:
+        return rows
+    ch = await model_changes()
+    return [{**r, "change": (ch.get((r["gift"], r["name"])) or {}).get(period)} for r in rows]
 
 
 @app.get("/api/models/price")
