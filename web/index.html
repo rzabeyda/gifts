@@ -25,20 +25,19 @@
   /* интерактивность: нажатие, наведение, волна */
   .rp { position:relative; overflow:hidden; transition:transform .16s var(--spring), background .2s, border-color .2s, box-shadow .2s; cursor:pointer; }
   .rp:active { transform:scale(.965); }
-  @media (hover:hover) { .rp:hover { border-color:rgba(255,47,185,.45); box-shadow:0 0 0 1px rgba(255,47,185,.15), 0 8px 24px rgba(0,0,0,.5); } }
-  .ripple { position:absolute; border-radius:50%; background:rgba(255,47,185,.28); transform:scale(0); pointer-events:none; animation:rip .6s ease-out forwards; }
+  @media (hover:hover) { .rp:hover { border-color:rgba(255,255,255,.6); box-shadow:0 0 0 1px rgba(255,255,255,.2), 0 8px 24px rgba(0,0,0,.5); } }
+  .ripple { position:absolute; border-radius:50%; background:rgba(255,255,255,.22); transform:scale(0); pointer-events:none; animation:rip .6s ease-out forwards; }
   @keyframes rip { to { transform:scale(1); opacity:0; } }
 
   .search { width:100%; padding:13px 16px; border-radius:16px; border:1px solid var(--line); background:var(--card);
     color:var(--text); font-size:16px; margin-bottom:12px; outline:none; transition:border-color .2s, box-shadow .2s; }
-  .search:focus { border-color:var(--acc); box-shadow:0 0 0 3px rgba(255,47,185,.18); }
+  .search:focus { outline:none; border-color:#fff; box-shadow:0 0 0 1px #fff, 0 0 14px rgba(255,255,255,.55), inset 0 0 10px rgba(255,255,255,.12); }
 
   .seg { display:flex; gap:8px; margin:0 0 14px; }
   .seg button { flex:1; padding:10px 0; border-radius:14px; border:1px solid var(--line); background:var(--card);
     color:var(--mute); font-size:14px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; }
-  .seg button.on.gain { color:#fff; border-color:#39ff88; background:linear-gradient(135deg, #2ecc71, #139a52); box-shadow:0 0 0 1px #39ff88, 0 0 14px rgba(57,255,136,.85), 0 0 34px rgba(57,255,136,.4); }
-  .seg button.on.loss { color:#fff; border-color:#ff4d57; background:linear-gradient(135deg, #ff5a5f, #c42b34); box-shadow:0 0 0 1px #ff4d57, 0 0 14px rgba(255,77,87,.85), 0 0 34px rgba(255,77,87,.4); }
   .seg button.on { color:#0b0b0d; border-color:#fff; background:#fff; box-shadow:0 0 0 1px #fff, 0 0 14px rgba(255,255,255,.7), 0 0 34px rgba(255,255,255,.28); }
+  #sort button.on, #gper button.on, #mper button.on, #mmode button.on, #cur button.on, #csort button.on, #per button.on, #gper2 button.on, #lb-per button.on { color:#fff; background:transparent; border-color:#fff; box-shadow:0 0 0 1px #fff, 0 0 14px rgba(255,255,255,.7), inset 0 0 12px rgba(255,255,255,.22); }  /* нижние ряды кнопок (сортировка, диапазоны, валюта): только неоновая рамка; верхние разделы — сплошная заливка */
   .seg .arr { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; transition:transform .25s var(--spring); }
   .seg .arr.down { transform:rotate(180deg); }
 
@@ -144,14 +143,23 @@
   .top .hico { width:38px; height:38px; flex:none; margin:0 0 8px; object-fit:contain; }
   #app.noglow::before { display:none; }  /* страница коллекции: фон полностью чёрный, без розового свечения сверху */
   .shr { flex:none; width:42px; height:42px; margin:0 0 10px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--text); padding:0; }
+  .tick { margin-left:auto; flex:none; height:34px; margin-bottom:14px; padding:0 10px 0 5px; display:flex; align-items:center; gap:6px; border-radius:999px; border:1px solid rgba(255,255,255,.85); background:#0b0b0d; color:#fff; font-size:13px; font-weight:800; box-shadow:0 0 12px rgba(255,255,255,.35); } .tick img { width:24px; height:24px; border-radius:50%; object-fit:cover; } .tick .chg svg { width:10px; height:10px; } .tk-in { animation:tkin .35s ease both; } @keyframes tkin { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+  .shr.rf { margin-left:auto; } .top #share { width:34px; height:34px; margin-bottom:14px; background:#fff; color:#000; box-shadow:0 0 14px rgba(255,255,255,.45); } .top #share svg { width:17px; height:17px; fill:#000; stroke:#000; stroke-width:1.8; stroke-linecap:round; }
+  .tpr { display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:6px; border:1px solid #2a2a2e; border-radius:14px; background:#0b0b0d; } .tpr.me { border-color:#fff; box-shadow:0 0 14px rgba(255,255,255,.3); }
+  .tpr b { width:26px; font-size:16px; text-align:center; } .tpr .tn { flex:1; min-width:0; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .tpr .tn small { display:block; color:var(--mute); font-size:12px; font-weight:600; } .tpr em { font-style:normal; font-weight:800; font-size:15px; }
+  .shr.rf { background:#fff; color:#000; box-shadow:0 0 14px rgba(255,255,255,.45); } .shr.rf.spin svg { animation:rfspin .8s linear infinite; } @keyframes rfspin { to { transform:rotate(360deg); } }
   .shr svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .shr img { width:100%; height:100%; border-radius:50%; display:block; }
+  .shr.tp, .shr.rf { width:34px; height:34px; margin-bottom:14px; } .shr.rf svg { width:16px; height:16px; }
+  #top-btn { padding:0; border:0; background:#fff; color:#000; box-shadow:0 0 14px rgba(255,255,255,.45); } #top-btn svg { width:17px; height:17px; fill:#000; stroke:#000; stroke-width:1.6; stroke-linejoin:round; stroke-linecap:round; }
   #share { padding:0; border:0; overflow:hidden; background:transparent; }
   .top .hico ~ h1 { font-size:21px; }
   .top h1.gt { white-space:normal; overflow:visible; text-overflow:clip; font-size:18px; line-height:1.1; margin:0 0 8px; word-break:break-word; }
+  .top h1:not(.gt) { cursor:pointer; }
+  .hico-p { width:34px; height:34px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; display:block; }
   .top h1 { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .lang { display:flex; align-items:center; flex:none; height:42px; box-sizing:border-box; margin-bottom:10px; padding:3px; border:1px solid var(--line); border-radius:999px; background:var(--card); }
-  .lang span { display:flex; align-items:center; height:34px; padding:0 13px; border-radius:999px; font-size:12px; font-weight:800; color:var(--mute); transition:background .2s, color .2s; }
+  .lang { display:flex; align-items:center; flex:none; height:34px; box-sizing:border-box; margin-bottom:14px; padding:2px; border:1px solid var(--line); border-radius:999px; background:var(--card); }
+  .lang span { display:flex; align-items:center; height:28px; padding:0 9px; border-radius:999px; font-size:11px; font-weight:800; color:var(--mute); transition:background .2s, color .2s; }
   .lang span.on { color:#0b0b0d; background:#fff; box-shadow:0 0 12px rgba(255,255,255,.6); }
   .mnote { color:var(--mute); font-size:12.5px; margin:2px 0 10px; }
   .mmap { position:relative; width:100%; border-radius:20px; overflow:hidden; background:#08080a; border:1px solid var(--line); }
@@ -201,7 +209,7 @@
   #sheet-panel { max-height:88vh; overflow-y:auto; }
   .fsel { display:flex; gap:8px; margin:0 0 12px; }
   .fsel select { flex:1; min-width:0; padding:11px 12px; border-radius:14px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:14px; font-weight:600; font-family:inherit; appearance:none; -webkit-appearance:none; text-overflow:ellipsis; }
-  .fsel select:focus { outline:none; border-color:var(--acc); }
+  .fsel select:focus { outline:none; border-color:#fff; box-shadow:0 0 0 1px #fff, 0 0 12px rgba(255,255,255,.5); }
   .shr.fav.on svg, .favb.on svg { fill:#fff; stroke:#fff; filter:drop-shadow(0 0 5px rgba(255,255,255,.95)); }
   .shr.fav.on, .favb.on { color:#fff; border-color:#fff; box-shadow:0 0 12px rgba(255,255,255,.75), 0 0 28px rgba(255,255,255,.3); }
   .lbrow { display:flex; gap:10px; margin:14px 0 0; } .lbrow .buy { flex:1; margin:0; }
@@ -213,6 +221,10 @@
   .row .nftimg { width:56px; height:56px; flex:none; border-radius:14px; overflow:hidden; background:radial-gradient(circle at 50% 35%, var(--c1), var(--c2)); box-shadow:inset 0 0 0 1px rgba(255,255,255,.12); }
   .row .nftimg img { width:100%; height:100%; border-radius:0; background:transparent; }
   .pcnt { font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .pgift { width:20px; height:20px; margin-right:7px; vertical-align:-3px; fill:none; stroke:#fff; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; } .pcmini .gem { width:18px; height:18px; margin-left:5px; vertical-align:-2px; }
+  .frs { display:flex; gap:8px; margin-bottom:12px; } .fr-c { flex:1; border:1px solid rgba(255,255,255,.9); box-shadow:0 0 0 1px rgba(255,255,255,.3), 0 0 14px rgba(255,255,255,.25); border-radius:18px; padding:12px 8px; text-align:center; background:#0b0b0d; } .fr-c b { display:block; font-size:28px; font-weight:800; } .fr-c span { font-size:12px; color:var(--mute); }
+  .pcsh { flex:none; width:34px; height:34px; border-radius:50%; background:#fff; display:grid; place-items:center; box-shadow:0 0 12px rgba(255,255,255,.5); } .pcsh svg { width:18px; height:18px; fill:#000; stroke:#000; stroke-width:1.8; stroke-linecap:round; }
+  .pcmini .gprice { margin-left:auto !important; }
   .pcmini { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px; } .pcmini .gprice { font-size:24px; margin:0; } .pcmini .s { margin:0; }
   .row .p small.bdn { color:#fff; opacity:.6; font-weight:600; font-size:10.5px; margin-top:1px; }
   .row .no { color:var(--mute); font-weight:600; font-size:13px; }
@@ -233,7 +245,7 @@
   .ava { position:relative; width:48px; height:48px; flex:none; border-radius:50%; padding:3px; background:#fff; box-shadow:0 0 0 1px rgba(255,255,255,.4), 0 0 14px rgba(255,255,255,.8), 0 0 30px rgba(255,255,255,.3); }
   .ava img, .ava i { position:absolute; inset:3px; width:calc(100% - 6px); height:calc(100% - 6px); border-radius:50%; object-fit:cover; background:#17101a; z-index:1; }
   .ava i { display:flex; align-items:center; justify-content:center; font-style:normal; font-weight:800; font-size:16px; z-index:0; }
-  .hero-n { min-width:0; } .nm { font-size:20px; font-weight:800; letter-spacing:-.3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .un { color:var(--mute); font-size:14px; margin-top:2px; }
+  .hero-n { min-width:0; flex:1; display:flex; align-items:center; gap:10px; } .nm { font-size:20px; font-weight:800; letter-spacing:-.3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .un { color:var(--mute); font-size:14px; margin-top:2px; }
   .stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
   .stat { text-align:center; padding:10px 2px 9px; border-radius:16px; background:rgba(255,255,255,.045); border:1px solid rgba(255,47,185,.28); min-width:0; }
   .stat b { display:block; font-size:18px; font-weight:800; } .stat span { display:block; font-size:10.5px; color:var(--mute); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -246,6 +258,7 @@
   .tiles { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0; }
   .tile { position:relative; height:54px; border-radius:18px; padding:0 12px; display:grid; display:flex; align-items:center; justify-content:center; text-align:center; color:#fff; font-family:inherit; overflow:hidden; border:1px solid #fff; box-shadow:0 0 0 1px rgba(255,255,255,.85), 0 0 14px rgba(255,255,255,.65), 0 0 32px rgba(255,255,255,.25); }
   .tile::before { content:""; position:absolute; width:90px; height:90px; right:-30px; top:-34px; border-radius:50%; filter:blur(20px); opacity:.6; }
+  .tile .ti { width:18px; height:18px; margin-right:8px; vertical-align:-3px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; } .tile .ti.fl { fill:currentColor; }
   .tile b { position:relative; font-size:17px; font-weight:800; letter-spacing:-.2px; line-height:1.15; }
   .tile em { position:relative; grid-column:2; font-style:normal; font-size:11px; color:rgba(255,255,255,.72); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tdn { background:#fff; border-color:#fff; box-shadow:0 0 18px rgba(255,255,255,.55), 0 0 40px rgba(255,255,255,.25); animation:dnpulse 2.4s ease-in-out infinite; }
@@ -308,12 +321,14 @@
   .rc-h { position:absolute; top:0; bottom:0; width:22px; } .rc-h.l { left:-11px; } .rc-h.r { right:-11px; }
   .rc-h::after { content:''; position:absolute; top:50%; left:50%; width:3px; height:16px; margin:-8px 0 0 -1.5px; border-radius:2px; background:#fff; }
   .alrow { display:flex; gap:8px; margin:0 0 10px; } .alrow .alb { margin:0; flex:1; font-size:14px; padding:11px 4px; }
-  .rk { margin-top:3px; font-size:13px; font-weight:700; color:#fff; opacity:.85; text-shadow:0 0 10px rgba(255,255,255,.5); }
+  .rk { margin-left:auto; flex:none; padding:6px 12px; font-size:13px; font-weight:800; color:#000; background:#fff; border-radius:999px; box-shadow:0 0 14px rgba(255,255,255,.45); }
+  .rl { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; margin-bottom:8px; border:1px solid #2a2a2e; border-radius:16px; background:#0b0b0d; font-size:16px; font-weight:700; }
+  .rl small { color:var(--mute); font-size:13px; font-weight:600; } .rl.me { border-color:#fff; box-shadow:0 0 16px rgba(255,255,255,.35); }
   .duel { display:flex; align-items:stretch; gap:8px; margin:4px 0 14px; } .dvs { align-self:center; font-weight:800; color:var(--mute); }
   .dcol { flex:1; min-width:0; border:1px solid #2a2a2e; border-radius:18px; padding:14px 6px; text-align:center; background:#0b0b0d; }
   .dcol.win { border-color:#fff; box-shadow:0 0 18px rgba(255,255,255,.35); }
-  .dn { font-size:13px; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .dv { font-size:24px; font-weight:800; margin-top:6px; }
-  .dg { font-size:12px; color:var(--mute); } .dr { margin-top:6px; font-size:14px; font-weight:700; }
+  .dnm { font-size:13px; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .dv { font-size:24px; font-weight:800; margin-top:6px; }
+  .dgr { font-size:12px; color:var(--mute); } .dr { margin-top:6px; font-size:14px; font-weight:700; }
   .dres { text-align:center; font-size:20px; font-weight:800; margin-bottom:14px; }
   #buy-gift { padding:10px; font-size:16px; margin:0; } .lbrow { margin:0 0 10px; }
   #gper2 { margin-top:6px !important; } #gper2 button { padding:5px 0 !important; font-size:12px; }
@@ -384,11 +399,11 @@ const $ = s => document.querySelector(s), view = $('#view');
 let LANG = 'ru';
 try { LANG = localStorage.getItem('lang') || ((tg?.initDataUnsafe?.user?.language_code || navigator.language || 'ru').slice(0, 2) === 'ru' ? 'ru' : 'en'); } catch (e) {}
 const I18N = {
-  ru: { rk1: 'Новичок', rk2: 'Коллекционер', rk3: 'Эксперт', rk4: 'Магнат', rk5: 'Кит', duel_t: 'Дуэль коллекций', duel_you: 'Вы', duel_win: 'Победа', duel_lose: 'Поражение', duel_draw: 'Ничья', duel_btn: 'Бросить вызов другу', duel_share: 'Моя коллекция стоит больше? Проверим:', sh_rank: 'Мой ранг', sh_duel: 'Дуэль: бросить вызов', gr_btn: 'Поделиться ростом', al_btn: 'Уведомить о цене', al_now: 'Сейчас', al_done: 'Готово, бот напишет, когда цена дойдёт', al_fail: 'Не удалось сохранить', nav_gifts: 'Гифты', nav_themes: 'Сэты', nav_map: 'Пузыри', nav_cap: 'Капа', title_map: 'Пузыри', pcs: 'шт.', cs_market: 'Рынок', cs_gifts: 'Коллекции', cs_models: 'Модели', cs_total: 'Всего', cs_more: 'Показать ещё', cs_left: 'осталось', cs_share: 'рынка', cs_models_note: 'Модели по капитализации: по 100 за раз. Ищи по названию, чтобы найти любую.', dn_msg: 'Сообщение (до 50 символов)', dn_history: 'История донатов', dn_total: 'Всего', dn_none: 'Пока донатов нет. Будь первым!', retry: 'Повторить', app_tag: 'Всё про Telegram Gifts в одной апке', b_price: 'Цена', b_change: 'Рост', b_rarity: 'Редкость', b_qty: 'Тираж', model_price: 'Цена модели', hub4_gifts: 'Подарки', hub4_pmodels: 'Модели', hub4_map: 'Пузыри', hub4_themes: 'Сэты', mine_bd: 'с фоном', hf_pick_gift: 'Выбери подарок', pf_sum: 'Итого', pf_add_more: 'Добавить ещё', tg_gifts: 'Коллекции', tg_models: 'Модели', pf_mine: 'Мои гифты', mine_tg: 'Список подарков доступен в приложении внутри Telegram.', mine_empty: 'Не вижу подарков. Они должны быть показаны в твоём профиле Telegram, и ты должен был открыть бота.', mine_total: 'Стоимость моих гифтов', mine_rest: 'Ещё {n} в профиле: обычные подарки без улучшения, их не считаем.', hub_pmodels: 'Модели', hub_backdrops: 'Фоны', pm_exp: 'Дорогие', pm_cheap: 'Дешёвые', pm_note: 'Топ-100 по цене. Ищи по названию, чтобы найти нужную модель.', nothing: 'Ничего не найдено', bd_rare: 'Редкие', bd_common: 'Частые', bd_note: 'Фоны подарков: чем меньше процент, тем реже фон встречается (в среднем по коллекциям).', bd_g: 'кол.', auth_t: 'Откройте приложение в Telegram', auth_b: 'Открыть бота', pf_favs: 'Избранное', sh_port: 'Мой портфель', sh_mine: 'Мои гифты', sh_mine_h: 'Мои гифты в Gift Hub:', sh_models: 'Мои модели', sh_gifts: 'Мои подарки', sh_sets: 'Мои сэты', sh_app: 'Приложение', sh_note: 'Отправится текстом со ссылкой на бота.', sh_head: '', sh_port_h: 'Мой портфель в Gift Hub:', sh_models_h: 'Мои избранные модели в Gift Hub:', sh_gifts_h: 'Мои избранные подарки в Gift Hub:', sh_sets_h: 'Мои избранные сэты в Gift Hub:', tl_donate: 'Поддержать проект', tl_share: 'Расскажи друзьям', pf_guest: 'Гость', pf_positions: 'Позиции', pf_value: 'Стоимость', pf_port: 'Портфель', pf_alerts: 'Уведомления', pf_donate: 'Донат', pf_f_gift: 'Подарки', pf_f_model: 'Модели', pf_f_set: 'Сэты', pf_fav_empty: 'Здесь пока пусто. Нажми звёздочку на подарке, модели или сэте.', pf_total: 'Стоимость портфеля', pf_add: 'Добавить', pf_port_empty: 'Добавь свои подарки, и я посчитаю их стоимость.', pf_qty: 'Количество', pf_save: 'Сохранить', pf_whole: 'Весь подарок (по флору)', pf_al_note: 'Бот пришлёт сообщение, когда условие выполнится. Проверка каждые несколько минут.', pf_al_tg: 'Уведомления работают только в приложении внутри Telegram.', pf_al_add: 'Новое уведомление', pf_al_empty: 'Уведомлений пока нет.', pf_al_val: 'Значение (GRAM или %)', pf_c_below: 'Цена ниже', pf_c_above: 'Цена выше', pf_c_change: 'Изменение за сутки больше', dn_title: 'Поддержать проект', dn_text: 'Gifts бесплатный. Если он полезен, можно поддержать его развитие любой суммой.', dn_stars: 'Telegram Stars', dn_amount: 'Сумма в Stars', dn_send: 'Отправить Stars', dn_crypto: 'GRAM и USDT (сеть TON)', dn_addr: 'Адрес кошелька', dn_copy: 'Скопировать адрес', dn_copied: 'Скопировано', dn_gram: 'Отправить GRAM', dn_usdt: 'Отправить USDT', dn_note: 'GRAM — это TON. USDT отправляй только в сети TON.', dn_thanks: 'Спасибо за поддержку!',  hub_gifts: 'Подарки', hub_map: 'Пузыри', hub_themes: 'Сэты', nav_profile: 'Профиль', share_t: 'Поделиться',  search_set: 'Поиск сета', f_gift: 'Все гифты', f_model: 'Все модели', lots: 'Дешёвые лоты', no_lots: 'нет лотов', live_wait: 'Ищу живые лоты на маркетах…', buy_note_live: 'Цены и лоты — реальные предложения сейчас (обновляются раз в несколько минут). Нажми на лот, чтобы открыть подарок.', models_tab: 'Модели', grp_all: 'Все', grp_pets: 'Питомцы', grp_gems: 'Цвет', grp_status: 'Статус', grp_other: 'Прочее', buy: 'Купить', buy_title: 'Где купить', buy_on: 'Купить на', best: 'лучшая цена', no_price: 'цена на маркете', buy_note: 'Цены — это цена подарка (коллекции) на каждом маркете, самый дешёвый сверху. Цена конкретной модели может отличаться.', mode_map: 'Гифты', mode_top: 'Модели', dir_up: 'Рост', dir_down: 'Падение', top_wait: 'Данные за этот период ещё копятся', size_profit: 'Профит', size_cap: 'Капа', note_up: 'топ-9 по росту цены за период: чем больше процент, тем больше пузырь', note_down: 'топ-9 по падению цены за период: чем больше процент, тем больше пузырь',  note_cap: 'топ-9 по капитализации: размер пузыря — капитализация, процент — изменение цены', note_top: 'топ-9 моделей по изменению цены за период: чем больше процент, тем больше пузырь', map_note: 'размер — капитализация, цвет — изменение цены за период', back: 'Назад', up: 'Наверх',
-    title_gifts: 'Гифты', title_themes: 'Сэты', title_cap: 'Капитал-ия',
+  ru: { dn_gift_t: 'Или отправьте подарок в благодарность на аккаунт @rzabeyda', dn_gift_b: 'Отправить подарок', pf_friends: 'Друзья', fr_invited: 'Приглашено', fr_nft: 'С NFT', fr_invite: 'Пригласить друга', fr_copy: 'Скопировать ссылку', fr_copied: 'Ссылка скопирована', fr_empty: 'Пока никого. Отправьте друзьям свою ссылку: засчитываются те, кто впервые запустил бота по ней.', cs_coll: 'Коллекции', cs_cap: 'Капитализация', top_b: 'Топ', top_t: 'Топ коллекционеров', top_empty: 'Пока никого нет', top_you: 'Ваше место', top_hide: 'Скрыть меня из топа', top_show: 'Показать меня в топе', top_note: 'В топе показаны имена из Telegram. Себя можно скрыть.', rk_t: 'Ранги коллекционеров', rk1: 'Гой', rk2: 'Школотрон', rk3: 'Хомяк', rk4: 'Акула', rk5: 'Кит', duel_t: 'Дуэль коллекций', duel_you: 'Вы', duel_win: 'Победа', duel_lose: 'Поражение', duel_draw: 'Ничья', duel_btn: 'Бросить вызов другу', duel_share: 'Моя коллекция стоит больше? Проверим:', sh_rank: 'Мой ранг', sh_duel: 'Дуэль: сможешь больше?', gr_btn: 'Поделиться ростом', al_btn: 'Уведомить о цене', al_now: 'Сейчас', al_done: 'Готово, бот напишет, когда цена дойдёт', al_fail: 'Не удалось сохранить', nav_gifts: 'Гифты', nav_themes: 'Сэты', nav_map: 'Пузыри', nav_cap: 'Капа', title_map: 'Пузыри', pcs: 'шт.', cs_market: 'Рынок', cs_gifts: 'Коллекции', cs_models: 'Модели', cs_total: 'Всего', cs_more: 'Показать ещё', cs_left: 'осталось', cs_share: 'рынка', cs_models_note: 'Модели по капитализации: по 100 за раз. Ищи по названию, чтобы найти любую.', dn_msg: 'Сообщение (до 50 символов)', dn_history: 'История донатов', dn_total: 'Всего', dn_none: 'Пока донатов нет. Будь первым!', retry: 'Повторить', app_tag: 'Всё про Telegram Gifts в одной апке', b_price: 'Цена', b_change: 'Рост', b_rarity: 'Редкость', b_qty: 'Тираж', model_price: 'Цена модели', hub4_gifts: 'Подарки', hub4_pmodels: 'Модели', hub4_map: 'Пузыри', hub4_themes: 'Сэты', mine_bd: 'с фоном', hf_pick_gift: 'Выбери подарок', pf_sum: 'Итого', pf_add_more: 'Добавить ещё', tg_gifts: 'Коллекции', tg_models: 'Модели', pf_mine: 'Мои гифты', mine_tg: 'Список подарков доступен в приложении внутри Telegram.', mine_empty: 'Не вижу подарков. Они должны быть показаны в твоём профиле Telegram, и ты должен был открыть бота.', mine_total: 'Стоимость моих гифтов', mine_rest: 'Ещё {n} в профиле: обычные подарки без улучшения, их не считаем.', hub_pmodels: 'Модели', hub_backdrops: 'Фоны', pm_exp: 'Дорогие', pm_cheap: 'Дешёвые', pm_note: 'Топ-100 по цене. Ищи по названию, чтобы найти нужную модель.', nothing: 'Ничего не найдено', bd_rare: 'Редкие', bd_common: 'Частые', bd_note: 'Фоны подарков: чем меньше процент, тем реже фон встречается (в среднем по коллекциям).', bd_g: 'кол.', auth_t: 'Откройте приложение в Telegram', auth_b: 'Открыть бота', pf_favs: 'Избранное', sh_port: 'Мой портфель', sh_mine: 'Мои гифты', sh_mine_h: 'Мои гифты в Gift Hub:', sh_models: 'Мои модели', sh_gifts: 'Мои подарки', sh_sets: 'Мои сэты', sh_app: 'Приложение', sh_note: 'Отправится текстом со ссылкой на бота.', sh_head: '', sh_port_h: 'Мой портфель в Gift Hub:', sh_models_h: 'Мои избранные модели в Gift Hub:', sh_gifts_h: 'Мои избранные подарки в Gift Hub:', sh_sets_h: 'Мои избранные сэты в Gift Hub:', tl_donate: 'Поддержать проект', tl_share: 'Расскажи друзьям', pf_guest: 'Гость', pf_positions: 'Позиции', pf_value: 'Стоимость', pf_port: 'Портфель', pf_alerts: 'Уведомления', pf_donate: 'Донат', pf_f_gift: 'Подарки', pf_f_model: 'Модели', pf_f_set: 'Сэты', pf_fav_empty: 'Здесь пока пусто. Нажми звёздочку на подарке, модели или сэте.', pf_total: 'Стоимость портфеля', pf_add: 'Добавить', pf_port_empty: 'Добавь свои подарки, и я посчитаю их стоимость.', pf_qty: 'Количество', pf_save: 'Сохранить', pf_whole: 'Весь подарок (по флору)', pf_al_note: 'Бот пришлёт сообщение, когда условие выполнится. Проверка каждые несколько минут.', pf_al_tg: 'Уведомления работают только в приложении внутри Telegram.', pf_al_add: 'Новое уведомление', pf_al_empty: 'Уведомлений пока нет.', pf_al_val: 'Значение (GRAM или %)', pf_c_below: 'Цена ниже', pf_c_above: 'Цена выше', pf_c_change: 'Изменение за сутки больше', dn_title: 'Поддержать проект', dn_text: 'Gifts бесплатный. Если он полезен, можно поддержать его развитие любой суммой.', dn_stars: 'Telegram Stars', dn_amount: 'Сумма в Stars', dn_send: 'Отправить Stars', dn_crypto: 'GRAM и USDT (сеть TON)', dn_addr: 'Адрес кошелька', dn_copy: 'Скопировать адрес', dn_copied: 'Скопировано', dn_gram: 'Отправить GRAM', dn_usdt: 'Отправить USDT', dn_note: 'GRAM — это TON. USDT отправляй только в сети TON.', dn_thanks: 'Спасибо за поддержку!',  hub_gifts: 'Подарки', hub_map: 'Пузыри', hub_themes: 'Сэты', nav_profile: 'Профиль', share_t: 'Поделиться',  search_set: 'Поиск сета', f_gift: 'Все гифты', f_model: 'Все модели', lots: 'Дешёвые лоты', no_lots: 'нет лотов', live_wait: 'Ищу живые лоты на маркетах…', buy_note_live: 'Цены и лоты — реальные предложения сейчас (обновляются раз в несколько минут). Нажми на лот, чтобы открыть подарок.', models_tab: 'Модели', grp_all: 'Все', grp_pets: 'Питомцы', grp_gems: 'Цвет', grp_status: 'Статус', grp_other: 'Прочее', buy: 'Купить', buy_title: 'Где купить', buy_on: 'Купить на', best: 'лучшая цена', no_price: 'цена на маркете', buy_note: 'Цены — это цена подарка (коллекции) на каждом маркете, самый дешёвый сверху. Цена конкретной модели может отличаться.', mode_map: 'Гифты', mode_top: 'Модели', dir_up: 'Рост', dir_down: 'Падение', top_wait: 'Данные за этот период ещё копятся', size_profit: 'Профит', size_cap: 'Капа', note_up: 'топ-9 по росту цены за период: чем больше процент, тем больше пузырь', note_down: 'топ-9 по падению цены за период: чем больше процент, тем больше пузырь',  note_cap: 'топ-9 по капитализации: размер пузыря — капитализация, процент — изменение цены', note_top: 'топ-9 моделей по изменению цены за период: чем больше процент, тем больше пузырь', map_note: 'размер — капитализация, цвет — изменение цены за период', back: 'Назад', up: 'Наверх',
+    title_gifts: 'Гифты', title_themes: 'Сэты', title_cap: 'Капа',
     search_gift: 'Поиск подарка', search_model: 'Поиск модели',
     sort_price: 'Цена', sort_cap: 'Капа', sort_supply: 'Тираж', sort_chg: 'Рост', sort_rarity: 'Редкость',
-    p_1h: '1ч', p_1d: '1д', p_1w: '1н', p_1m: '1м', p_all: 'Всё',
+    p_1h: '1ч', p_1d: '1д', p_1w: '1н', p_1m: '1м', p_all: '1г',
     cap_w: 'Капа', mod_short: 'мод.', nothing: 'Ничего не найдено', noprice: 'нет цены', sold: 'прод.',
     rarity_l: 'редкость', supply: 'Тираж', loading: 'Загрузка…', chart_fail: 'Не удалось загрузить график',
     chart_few: 'За этот период данных мало', leg_line_gift: 'линия: цена подарка · ', leg_green: 'зелёные точки: продажи · ',
@@ -397,11 +412,11 @@ const I18N = {
     ago_min: 'мин назад', ago_h: 'ч назад', ago_d: 'дн назад', models_w: 'моделей', from_w: 'от',
     cap_note: 'оценка: тираж × цена подарка, по всем подаркам',
     cap_wait: 'История копится: график появится, когда наберётся больше одной точки.' },
-  en: { rk1: 'Newbie', rk2: 'Collector', rk3: 'Expert', rk4: 'Tycoon', rk5: 'Whale', duel_t: 'Collection duel', duel_you: 'You', duel_win: 'Victory', duel_lose: 'Defeat', duel_draw: 'Draw', duel_btn: 'Challenge a friend', duel_share: 'Is my collection worth more? Let us see:', sh_rank: 'My rank', sh_duel: 'Duel: send a challenge', gr_btn: 'Share growth', al_btn: 'Price alert', al_now: 'Now', al_done: 'Done, the bot will message you at that price', al_fail: 'Could not save', nav_gifts: 'Gifts', nav_themes: 'Sets', nav_map: 'Bubbles', nav_cap: 'Cap', title_map: 'Bubbles', pcs: 'pcs', cs_market: 'Market', cs_gifts: 'Collections', cs_models: 'Models', cs_total: 'Total', cs_more: 'Show next', cs_left: 'left', cs_share: 'of market', cs_models_note: 'Models by market cap, 100 at a time. Search by name to find any.', dn_msg: 'Message (up to 50 characters)', dn_history: 'Donation history', dn_total: 'Total', dn_none: 'No donations yet. Be the first!', retry: 'Retry', app_tag: 'Everything about Telegram Gifts in one app', b_price: 'Price', b_change: 'Growth', b_rarity: 'Rarity', b_qty: 'Supply', model_price: 'Model price', hub4_gifts: 'Gifts', hub4_pmodels: 'Models', hub4_map: 'Bubbles', hub4_themes: 'Sets', mine_bd: 'incl. backdrop', hf_pick_gift: 'Pick a gift', pf_sum: 'Total', pf_add_more: 'Add more', tg_gifts: 'Collections', tg_models: 'Models', pf_mine: 'My gifts', mine_tg: 'The gift list is available in the app inside Telegram.', mine_empty: 'No gifts found. They must be shown on your Telegram profile, and you must have opened the bot.', mine_total: 'Value of my gifts', mine_rest: '{n} more on your profile: regular gifts that are not upgraded, not counted.', hub_pmodels: 'Models', hub_backdrops: 'Backdrops', pm_exp: 'Expensive', pm_cheap: 'Cheap', pm_note: 'Top 100 by price. Search by name to find a model.', nothing: 'Nothing found', bd_rare: 'Rare', bd_common: 'Common', bd_note: 'Gift backdrops: the lower the percent, the rarer the backdrop (average over collections).', bd_g: 'coll.', auth_t: 'Open the app inside Telegram', auth_b: 'Open the bot', pf_favs: 'Favorites', sh_port: 'My portfolio', sh_mine: 'My gifts', sh_mine_h: 'My gifts in Gift Hub:', sh_models: 'My models', sh_gifts: 'My gifts', sh_sets: 'My sets', sh_app: 'The app', sh_note: 'Sent as text with a link to the bot.', sh_head: '', sh_port_h: 'My portfolio in Gift Hub:', sh_models_h: 'My favorite models in Gift Hub:', sh_gifts_h: 'My favorite gifts in Gift Hub:', sh_sets_h: 'My favorite sets in Gift Hub:', tl_donate: 'Support the project', tl_share: 'Tell your friends', pf_guest: 'Guest', pf_positions: 'Items', pf_value: 'Value', pf_port: 'Portfolio', pf_alerts: 'Alerts', pf_donate: 'Donate', pf_f_gift: 'Gifts', pf_f_model: 'Models', pf_f_set: 'Sets', pf_fav_empty: 'Nothing here yet. Tap the star on a gift, model or set.', pf_total: 'Portfolio value', pf_add: 'Add', pf_port_empty: 'Add your gifts and I will calculate their value.', pf_qty: 'Quantity', pf_save: 'Save', pf_whole: 'Whole gift (floor price)', pf_al_note: 'The bot will message you when the condition is met. Checked every few minutes.', pf_al_tg: 'Alerts only work in the app inside Telegram.', pf_al_add: 'New alert', pf_al_empty: 'No alerts yet.', pf_al_val: 'Value (GRAM or %)', pf_c_below: 'Price below', pf_c_above: 'Price above', pf_c_change: 'Daily change over', dn_title: 'Support the project', dn_text: 'Gifts is free. If it is useful, you can support its development with any amount.', dn_stars: 'Telegram Stars', dn_amount: 'Amount in Stars', dn_send: 'Send Stars', dn_crypto: 'GRAM and USDT (TON network)', dn_addr: 'Wallet address', dn_copy: 'Copy address', dn_copied: 'Copied', dn_gram: 'Send GRAM', dn_usdt: 'Send USDT', dn_note: 'GRAM is TON. Send USDT only on the TON network.', dn_thanks: 'Thank you for your support!',  hub_gifts: 'Gifts', hub_map: 'Bubbles', hub_themes: 'Sets', nav_profile: 'Profile', share_t: 'Share',  search_set: 'Search sets', f_gift: 'All gifts', f_model: 'All models', lots: 'Cheapest listings', no_lots: 'no listings', live_wait: 'Looking for live listings…', buy_note_live: 'Prices and listings are real offers right now (refreshed every few minutes). Tap a listing to open the gift.', models_tab: 'Models', grp_all: 'All', grp_pets: 'Pets', grp_gems: 'Color', grp_status: 'Status', grp_other: 'Other', buy: 'Buy', buy_title: 'Where to buy', buy_on: 'Buy on', best: 'best price', no_price: 'price on the market', buy_note: 'Prices are the gift (collection) floor on each market, cheapest first. A specific model may cost differently.', mode_map: 'Gifts', mode_top: 'Models', dir_up: 'Growth', dir_down: 'Decline', top_wait: 'Data for this period is still accumulating', size_profit: 'Profit', size_cap: 'Cap', note_up: 'top 9 by price growth over the period: the bigger the percent, the bigger the bubble', note_down: 'top 9 by price decline over the period: the bigger the percent, the bigger the bubble',  note_cap: 'top 9 by market cap: bubble size = market cap, percent = price change', note_top: 'top 9 models by price change over the period: the bigger the percent, the bigger the bubble', map_note: 'size = market cap, color = price change over the period', back: 'Back', up: 'Up',
-    title_gifts: 'Gifts', title_themes: 'Sets', title_cap: 'Market cap',
+  en: { dn_gift_t: 'Or send a gift as a thank-you to @rzabeyda', dn_gift_b: 'Send a gift', pf_friends: 'Friends', fr_invited: 'Invited', fr_nft: 'With NFT', fr_invite: 'Invite a friend', fr_copy: 'Copy link', fr_copied: 'Link copied', fr_empty: 'Nobody yet. Send your link to friends: those who start the bot with it for the first time are counted.', cs_coll: 'Collections', cs_cap: 'Capitalization', top_b: 'Top', top_t: 'Top collectors', top_empty: 'Nobody yet', top_you: 'Your place', top_hide: 'Hide me from the top', top_show: 'Show me in the top', top_note: 'Telegram names are shown. You can hide yourself.', rk_t: 'Collector ranks', rk1: 'Goy', rk2: 'Newbie', rk3: 'Hamster', rk4: 'Shark', rk5: 'Whale', duel_t: 'Collection duel', duel_you: 'You', duel_win: 'Victory', duel_lose: 'Defeat', duel_draw: 'Draw', duel_btn: 'Challenge a friend', duel_share: 'Is my collection worth more? Let us see:', sh_rank: 'My rank', sh_duel: 'Duel: can you beat me?', gr_btn: 'Share growth', al_btn: 'Price alert', al_now: 'Now', al_done: 'Done, the bot will message you at that price', al_fail: 'Could not save', nav_gifts: 'Gifts', nav_themes: 'Sets', nav_map: 'Bubbles', nav_cap: 'Cap', title_map: 'Bubbles', pcs: 'pcs', cs_market: 'Market', cs_gifts: 'Collections', cs_models: 'Models', cs_total: 'Total', cs_more: 'Show next', cs_left: 'left', cs_share: 'of market', cs_models_note: 'Models by market cap, 100 at a time. Search by name to find any.', dn_msg: 'Message (up to 50 characters)', dn_history: 'Donation history', dn_total: 'Total', dn_none: 'No donations yet. Be the first!', retry: 'Retry', app_tag: 'Everything about Telegram Gifts in one app', b_price: 'Price', b_change: 'Growth', b_rarity: 'Rarity', b_qty: 'Supply', model_price: 'Model price', hub4_gifts: 'Gifts', hub4_pmodels: 'Models', hub4_map: 'Bubbles', hub4_themes: 'Sets', mine_bd: 'incl. backdrop', hf_pick_gift: 'Pick a gift', pf_sum: 'Total', pf_add_more: 'Add more', tg_gifts: 'Collections', tg_models: 'Models', pf_mine: 'My gifts', mine_tg: 'The gift list is available in the app inside Telegram.', mine_empty: 'No gifts found. They must be shown on your Telegram profile, and you must have opened the bot.', mine_total: 'Value of my gifts', mine_rest: '{n} more on your profile: regular gifts that are not upgraded, not counted.', hub_pmodels: 'Models', hub_backdrops: 'Backdrops', pm_exp: 'Expensive', pm_cheap: 'Cheap', pm_note: 'Top 100 by price. Search by name to find a model.', nothing: 'Nothing found', bd_rare: 'Rare', bd_common: 'Common', bd_note: 'Gift backdrops: the lower the percent, the rarer the backdrop (average over collections).', bd_g: 'coll.', auth_t: 'Open the app inside Telegram', auth_b: 'Open the bot', pf_favs: 'Favorites', sh_port: 'My portfolio', sh_mine: 'My gifts', sh_mine_h: 'My gifts in Gift Hub:', sh_models: 'My models', sh_gifts: 'My gifts', sh_sets: 'My sets', sh_app: 'The app', sh_note: 'Sent as text with a link to the bot.', sh_head: '', sh_port_h: 'My portfolio in Gift Hub:', sh_models_h: 'My favorite models in Gift Hub:', sh_gifts_h: 'My favorite gifts in Gift Hub:', sh_sets_h: 'My favorite sets in Gift Hub:', tl_donate: 'Support the project', tl_share: 'Tell your friends', pf_guest: 'Guest', pf_positions: 'Items', pf_value: 'Value', pf_port: 'Portfolio', pf_alerts: 'Alerts', pf_donate: 'Donate', pf_f_gift: 'Gifts', pf_f_model: 'Models', pf_f_set: 'Sets', pf_fav_empty: 'Nothing here yet. Tap the star on a gift, model or set.', pf_total: 'Portfolio value', pf_add: 'Add', pf_port_empty: 'Add your gifts and I will calculate their value.', pf_qty: 'Quantity', pf_save: 'Save', pf_whole: 'Whole gift (floor price)', pf_al_note: 'The bot will message you when the condition is met. Checked every few minutes.', pf_al_tg: 'Alerts only work in the app inside Telegram.', pf_al_add: 'New alert', pf_al_empty: 'No alerts yet.', pf_al_val: 'Value (GRAM or %)', pf_c_below: 'Price below', pf_c_above: 'Price above', pf_c_change: 'Daily change over', dn_title: 'Support the project', dn_text: 'Gifts is free. If it is useful, you can support its development with any amount.', dn_stars: 'Telegram Stars', dn_amount: 'Amount in Stars', dn_send: 'Send Stars', dn_crypto: 'GRAM and USDT (TON network)', dn_addr: 'Wallet address', dn_copy: 'Copy address', dn_copied: 'Copied', dn_gram: 'Send GRAM', dn_usdt: 'Send USDT', dn_note: 'GRAM is TON. Send USDT only on the TON network.', dn_thanks: 'Thank you for your support!',  hub_gifts: 'Gifts', hub_map: 'Bubbles', hub_themes: 'Sets', nav_profile: 'Profile', share_t: 'Share',  search_set: 'Search sets', f_gift: 'All gifts', f_model: 'All models', lots: 'Cheapest listings', no_lots: 'no listings', live_wait: 'Looking for live listings…', buy_note_live: 'Prices and listings are real offers right now (refreshed every few minutes). Tap a listing to open the gift.', models_tab: 'Models', grp_all: 'All', grp_pets: 'Pets', grp_gems: 'Color', grp_status: 'Status', grp_other: 'Other', buy: 'Buy', buy_title: 'Where to buy', buy_on: 'Buy on', best: 'best price', no_price: 'price on the market', buy_note: 'Prices are the gift (collection) floor on each market, cheapest first. A specific model may cost differently.', mode_map: 'Gifts', mode_top: 'Models', dir_up: 'Growth', dir_down: 'Decline', top_wait: 'Data for this period is still accumulating', size_profit: 'Profit', size_cap: 'Cap', note_up: 'top 9 by price growth over the period: the bigger the percent, the bigger the bubble', note_down: 'top 9 by price decline over the period: the bigger the percent, the bigger the bubble',  note_cap: 'top 9 by market cap: bubble size = market cap, percent = price change', note_top: 'top 9 models by price change over the period: the bigger the percent, the bigger the bubble', map_note: 'size = market cap, color = price change over the period', back: 'Back', up: 'Up',
+    title_gifts: 'Gifts', title_themes: 'Sets', title_cap: 'Cap',
     search_gift: 'Search gifts', search_model: 'Search models',
     sort_price: 'Price', sort_cap: 'Cap', sort_supply: 'Supply', sort_chg: 'Growth', sort_rarity: 'Rarity',
-    p_1h: '1H', p_1d: '1D', p_1w: '1W', p_1m: '1M', p_all: 'All',
+    p_1h: '1H', p_1d: '1D', p_1w: '1W', p_1m: '1M', p_all: '1y',
     cap_w: 'Cap', mod_short: 'models', nothing: 'Nothing found', noprice: 'no price', sold: 'sold',
     rarity_l: 'rarity', supply: 'Supply', loading: 'Loading…', chart_fail: 'Failed to load the chart',
     chart_few: 'Not enough data for this period', leg_line_gift: 'line: gift price · ', leg_green: 'green dots: sales · ',
@@ -423,7 +438,28 @@ const perBtns = () => CH_PERIODS.map(([k, p]) => `<button class="rp" data-v="${k
 // верхняя строка экрана: заголовок слева, переключатель языка справа
 const STAR = '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8z"/></svg>';
 const favAttr = f => `data-k="${esc(f.kind)}" data-g="${esc(f.gift)}" data-m="${esc(f.model || '')}"`;
-const topbar = (title, icon, fav) => `<div class="top">${icon ? `<img class="hico" src="${icon}" alt="" onerror="this.style.display='none'"><h1 class="gt">${title}</h1>` : `<h1>${title}</h1>`}${fav ? `<button class="shr rp fav ${U.isFav(fav.kind, fav.gift, fav.model) ? 'on' : ''}" id="fav" ${favAttr(fav)} aria-label="Favorite">${STAR}</button>` : ''}<button class="shr rp" id="share" aria-label="Share"><img src="/m/share.png" alt=""></button><div class="lang rp" id="lang"><span class="${LANG === 'ru' ? 'on' : ''}">RU</span><span class="${LANG === 'en' ? 'on' : ''}">EN</span></div></div>`;
+const isObjPage = () => typeof cur !== 'undefined' && !!cur && !!cur.arg && (cur.name === 'models' || cur.name === 'theme');  // у страницы подарка или сэта кнопка делится ими, на остальных экранах — обновляет данные
+// мини-табло в верхней панели: самое резкое движение гифта — рост и падение по очереди; данные обновляются раз в минуту
+let tick = { up: null, dn: null, per: '1h' }, tickShowUp = true;
+function tickCompute(list = giftsCache) {
+  if (!list) return;
+  for (const per of ['1h', '1d']) {
+    const rows = list.filter(g => g.changes && g.changes[per] != null);
+    if (!rows.length) continue;
+    const up = rows.reduce((a, g) => g.changes[per] > a.changes[per] ? g : a), dn = rows.reduce((a, g) => g.changes[per] < a.changes[per] ? g : a);
+    if (per === '1d' || Math.max(up.changes[per], -dn.changes[per]) >= 0.5) { tick = { up, dn, per }; return; }
+  }
+}
+function tickHtml() {
+  const g = tickShowUp ? tick.up : tick.dn;
+  if (!g || (tickShowUp ? g.changes[tick.per] <= 0 : g.changes[tick.per] >= 0)) return '<button class="tick" id="ticker" aria-hidden="true" style="visibility:hidden"></button>';
+  return `<button class="tick rp" id="ticker" data-g="${esc(g.name)}"><img src="${img(g.name)}" alt="">${chg(g.changes[tick.per], 1)}</button>`;
+}
+function tickPaint() { const el = $('#ticker'); if (!el) return; el.outerHTML = tickHtml(); const n = $('#ticker'); if (n) n.classList.add('tk-in'); }
+setInterval(() => { tickShowUp = !tickShowUp; tickPaint(); }, 10000);
+setInterval(() => api('/gifts').then(v => { tickCompute(v); tickPaint(); }).catch(() => {}), 60000);
+document.addEventListener('click', e => { const t = e.target.closest('#ticker'); if (t && t.dataset.g) { hap(); navigate('models', t.dataset.g); } });
+const topbar = (title, icon, fav) => `<div class="top">${icon ? `<img class="hico" src="${icon}" alt="" onerror="this.style.display='none'"><h1 class="gt">${title}</h1>` : `<h1>${title}</h1>`}${fav ? `<button class="shr rp fav ${U.isFav(fav.kind, fav.gift, fav.model) ? 'on' : ''}" id="fav" ${favAttr(fav)} aria-label="Favorite">${STAR}</button>` : ''}${tickHtml()}<button class="shr rp" id="share" aria-label="Share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></button><div class="lang rp" id="lang"><span class="${LANG === 'ru' ? 'on' : ''}">RU</span><span class="${LANG === 'en' ? 'on' : ''}">EN</span></div></div>`;
 // API отвечает только внутри Telegram: к каждому запросу прикладываем подписанные данные открытия (initData)
 const apiCache = new Map();
 const apiC = p => {  // запросы страницы коллекции с кэшем: возвращаясь и листая соседние, данные берутся мгновенно
@@ -454,6 +490,7 @@ document.addEventListener('click', e => { if (e.target.closest('.gst[data-price]
 try { priceCur = localStorage.getItem('priceCur') === 'usd' ? 'usd' : 'gram'; } catch (e) {}
 const fmtB = n => n == null ? '—' : n >= 100 ? Math.round(n).toLocaleString(LOC()).replace(/ /g, ' ') : String(Math.floor(n * 10) / 10);  // цена в блоке: не больше одного знака после запятой, чтобы число влезало
 const fmt = n => n == null ? '—' : n >= 1000 ? Math.round(n).toLocaleString(LOC()) : (+n.toFixed(2)).toString();
+const fmtR = n => n == null ? '—' : n >= 1e6 ? Math.round(n / 1e6) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : fmt(Math.round(n));  // круглое число: 120M
 const fmtK = n => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1) + 'M' : n >= 1e3 ? (n/1e3).toFixed(1) + 'K' : fmt(n);
 const fmtS = n => n == null ? '—' : Math.round(n).toLocaleString(LOC()).replace(/\u00a0/g, ' ');  // тираж целиком: 200 000
 const FOOT = '<footer><a href="https://t.me/GiftChanges">@GiftChanges</a> храни вас Господь!</footer>';
@@ -577,6 +614,7 @@ async function showGifts() {
   const id = mount(`<div>${topbar(T('title_gifts'))}<input class="search" placeholder="${T('search_gift')}" id="q">${hubSeg('gifts')}
     <div class="seg" id="sort"><button class="rp" data-v="chg">Рост</button><button class="rp" data-v="price">Цена</button><button class="rp" data-v="supply">Тираж</button></div>
     <div class="seg seg-s" id="gper">${PERIODS.map(k => `<button class="rp" data-v="${k}">${T('p_' + k)}</button>`).join('')}</div>
+    <div class="s" id="gcnt" style="color:var(--mute);margin:0 2px 8px;font-size:13px"></div>
     <div id="list"></div>${FOOT}</div>`);
   bindHub();
   giftsCache ||= await api('/gifts');
@@ -601,6 +639,7 @@ async function showGifts() {
     });
     const shownGifts = sortBy(giftsCache.filter(g => g.name.toLowerCase().includes(q)), GSORT[giftSort.key], giftSort.dir);
     giftOrder = shownGifts.map(g => g.name);  // порядок, в котором коллекции листаются свайпом на странице подарка
+    $('#gcnt').innerHTML = T('cs_coll') + ': <b style="color:#fff">' + shownGifts.length + '</b>';
     renderList(box, shownGifts, giftRow, animate);
     animate = false;
   };
@@ -648,7 +687,8 @@ async function drawGiftChart(gift) {
   const fl = cropHour(h.floors.map(p => ({ t: p.ts, v: p.price_ton })), gcDays), sl = cropHour(h.sales.map(p => ({ t: p.ts, v: p.price_ton })), gcDays);
   const cur = h.now ? { t: h.now.ts, v: h.now.price_ton } : null;
   { const c = $('#gchg'), base = fl.length > 1 ? fl[0].v : null, nowP = cur ? cur.v : (fl.length ? fl[fl.length - 1].v : null);
-    if (c) c.innerHTML = base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2), 1) : '—'; }
+    const sv = giftsCache?.find(x => x.name === gift)?.changes?.[CAPKEY[gcDays]];  // то же число, что в списке и на карточке «Поделиться ростом»
+    if (c) c.innerHTML = sv != null ? chg(sv, 1) : base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2), 1) : '—'; }
   if (fl.concat(sl, cur ? [cur] : []).length < 2) box.innerHTML = '<div class="empty" style="padding:30px">' + T('chart_few') + '</div>';
   else renderChart(box, fl, sl, cur, chartH());
 }
@@ -879,7 +919,6 @@ async function showMap() {
   const id = mount(`<div>${topbar(T('title_map'))}${hubSeg('map')}
     <div class="seg" id="mmode"><button class="rp" data-v="map">${T('mode_map')}</button><button class="rp" data-v="top">${T('mode_top')}</button></div>
     <div class="seg seg-s" id="mper" style="margin-top:-2px">${PERIODS.map(k => `<button class="rp" data-v="${k}">${T('p_' + k)}</button>`).join('')}</div>
-    <div class="seg seg-s" id="msub"></div>
     <div class="mmap" id="mmap"></div>
     <div class="mlegend"><span>−10%</span><i></i><span>+10%</span></div></div>`);
   bindHub();
@@ -902,14 +941,11 @@ async function showMap() {
     const isTop = mapMode === 'top';
     document.querySelectorAll('#mper button').forEach(b => b.classList.toggle('on', b.dataset.v === mapPeriod));
     document.querySelectorAll('#mmode button').forEach(b => b.classList.toggle('on', b.dataset.v === mapMode));
-    // второй ряд: для подарков — «Рост / Падение / Капа», для моделей — «Рост / Падение»
-    const subs = isTop ? ['up', 'down'] : ['up', 'down', 'cap'];
-    $('#msub').innerHTML = subs.map(k => `<button class="rp" data-v="${k}">${T(k === 'up' ? 'dir_up' : k === 'down' ? 'dir_down' : 'size_cap')}</button>`).join('');
+    if (mapSize === 'cap') mapSize = 'up';
     const cur = isTop ? topDir : mapSize;
-    document.querySelectorAll('#msub button').forEach(b => {
-      b.classList.toggle('on', b.dataset.v === cur);
-      b.classList.toggle('gain', b.dataset.v === cur && cur === 'up'); b.classList.toggle('loss', b.dataset.v === cur && cur === 'down');  // рост — зелёная, падение — красная
-      b.onclick = () => { if (isTop) topDir = b.dataset.v; else mapSize = b.dataset.v; draw(); };
+    // у активной кнопки режима стрелка: вверх — рост, вниз — падение; повторное нажатие переключает
+    document.querySelectorAll('#mmode button').forEach(b => {
+      b.innerHTML = T(b.dataset.v === 'map' ? 'mode_map' : 'mode_top') + (b.dataset.v === mapMode ? arrowBtn(true, cur === 'up' ? 1 : -1) : '');
     });
     const W = Math.floor(view.clientWidth - 32), H = Math.round(W * 1.2);
     if (!isTop) {
@@ -947,6 +983,7 @@ async function showMap() {
   };
   document.querySelectorAll('#mper button').forEach(b => b.onclick = () => { mapPeriod = b.dataset.v; draw(); });
   document.querySelectorAll('#mmode button').forEach(b => b.onclick = () => {
+    if (b.dataset.v === mapMode) { if (mapMode === 'top') topDir = topDir === 'up' ? 'down' : 'up'; else mapSize = mapSize === 'up' ? 'down' : 'up'; hap(); draw(); return; }
     mapMode = b.dataset.v;
     if (mapMode === 'top' && mapPeriod === '1d') mapPeriod = '1w';  // дневная история по моделям ещё копится
     draw();
@@ -982,7 +1019,9 @@ function openPriceAlert(gift, model, price) {
     <div class="frm"><input id="al-v" type="number" inputmode="decimal" step="any" min="0" placeholder="${T('pf_al_val')} GRAM"><button class="buy rp" id="al-ok">${T('pf_save')}</button></div>`, () => {
     $('#al-ok').onclick = async () => {
       const v = +$('#al-v').value; if (!(v > 0)) return;
-      const ok = await U.addAlert(gift, model, price != null && v > price ? 'above' : 'below', v);  // сторона по текущей цене: выше неё — ждём роста, ниже — падения hapOk(); closeForm();
+      // сторона по текущей цене: выше неё — ждём роста, ниже — падения
+      const ok = await U.addAlert(gift, model, price != null && v > price ? 'above' : 'below', v);
+      hapOk(); closeForm();
       try { tg?.showAlert?.(ok ? T('al_done') : T('al_fail')); } catch (e) {}
     };
   });
@@ -1245,8 +1284,8 @@ async function showCap() {
     if (id !== viewId) return;
     if (d.ton_usd) tonUsd = d.ton_usd;
     const pts = cropHour(d.points.map(p => ({ t: p.ts, v: capCur === 'usd' ? p.usd : p.ton })), capDays);
-    const cur = d.current ? (capCur === 'usd' ? d.current.usd : d.current.ton) : null;
-    const f = v => (capCur === 'usd' ? '$' : '') + fmtK(v) + (capCur === 'gram' ? ' GRAM' : '');
+    const tot = capTotal(), cur = tot > 0 && (capCur !== 'usd' || tonUsd) ? (capCur === 'usd' ? tot * tonUsd : tot) : d.current ? (capCur === 'usd' ? d.current.usd : d.current.ton) : null;  // та же общая капа, что в «Коллекциях» и «Моделях»
+    const f = v => fmtR(v) + (capCur === 'gram' ? ' GRAM' : ' USD');
     $('#body').innerHTML = `<div class="big" id="bigv">${cur == null ? '—' : f(cur)}</div>` +
       (pts.length > 1 ? `<div id="mcbox" style="margin-top:10px"></div>`
         : '<div class="empty">' + T('cap_wait') + '</div>');
@@ -1259,11 +1298,17 @@ async function showCap() {
   if (!tonUsd) api('/marketcap?days=1').then(d => { tonUsd = d.ton_usd || null; if (capSec !== 'market') draw(); }).catch(() => {});
   draw();
 }
+const capTotal = () => (giftsCache || []).reduce((a, g) => a + (g.cap_ton || 0), 0);  // общая капитализация подарков: одно число во всех разделах
+let capLineUsd = false;  // строка «Капитализация»: по умолчанию GRAM, нажатие переключает на USDT
+const capLineVal = total => capLineUsd && tonUsd ? fmtR(total * tonUsd) + ' USD' : fmtR(total) + ' GRAM';
+const capLine = total => `<div class="s rp" id="capln" style="color:var(--mute);margin:0 2px 8px;font-size:13px;cursor:pointer">${T('cs_cap')}: <b id="capv" style="color:#fff">${capLineVal(total)}</b></div>`;
+const bindCapLine = total => { const el = $('#capln'); if (el) el.onclick = () => { capLineUsd = !capLineUsd; hap(); $('#capv').textContent = capLineVal(total); }; };
 const capSortBtn = () => `<div class="seg seg-s" id="csort"><button class="rp on ${capDir === -1 ? 'gain' : 'loss'}">${T('sort_cap')}${arrowBtn(true, -capDir)}</button></div>`;
 function drawCapGifts(id, money) {
   const total = giftsCache.reduce((a, g) => a + (g.cap_ton || 0), 0), key = CAPKEY[capDays] || '1d';
   const rows = giftsCache.filter(g => g.cap_ton > 0).sort((a, b) => (a.cap_ton - b.cap_ton) * capDir);
-  $('#body').innerHTML = `${capSortBtn()}<div class="s" style="color:var(--mute);margin:0 2px 8px;font-size:13px">${T('cs_total')}: <b style="color:#fff">${money(total)}</b> · ${rows.length}</div><div id="caplist"></div>`;
+  $('#body').innerHTML = `${capSortBtn()}${capLine(total)}<div id="caplist"></div>`;
+  bindCapLine(total);
   renderList($('#caplist'), rows, (g, i, anim) => `<div class="row rp ${anim ? 'anim' : ''}" data-g="${esc(g.name)}" ${stagger(i)}>${imgTag(img(g.name))}<div class="t"><div class="n">${esc(g.name)}</div><div class="s">${(g.cap_ton / total * 100).toFixed(1)}% ${T('cs_share')}</div></div><div class="p">${money(g.cap_ton)}</div></div>`, true);
   $('#caplist').onclick = e => { const el = e.target.closest('[data-g]'); if (el) navigate('models', el.dataset.g); };
   $('#csort button').onclick = () => { capDir = -capDir; hap(); drawCapGifts(id, money); };
@@ -1275,8 +1320,9 @@ async function drawCapModels(id, money) {
   const supply = Object.fromEntries(giftsCache.map(g => [g.name, g.upgraded || g.supply]));
   const rows = all.map(m => ({ ...m, cap: supply[m.gift] && m.rarity_permille > 0 && m.floor_ton != null ? supply[m.gift] * m.rarity_permille / 1000 * m.floor_ton : null })).filter(m => m.cap > 0);
   const total = rows.reduce((a, m) => a + m.cap, 0);
-  $('#body').innerHTML = `${capSortBtn()}<input class="search" id="cq" placeholder="${T('search_model')}"><div class="s" style="color:var(--mute);margin:0 2px 8px;font-size:12.5px">${T('cs_models_note')}</div><div id="caplist"></div>`;
-  let shown = [], limit = 100;  // по 100 моделей, дальше кнопкой «Показать ещё»
+  $('#body').innerHTML = `${capSortBtn()}${capLine(capTotal())}<input class="search" id="cq" placeholder="${T('search_model')}"><div id="caplist"></div>`;
+  bindCapLine(capTotal());
+  let shown = [], limit = 250;  // сразу 250 моделей, дальше кнопкой «Показать ещё»
   const render = () => {
     const words = ($('#cq').value || '').toLowerCase().split(/\s+/).filter(Boolean);
     const found = rows.filter(m => { const t = (m.name + ' ' + m.gift).toLowerCase(); return words.every(w => t.includes(w)); }).sort((a, b) => (a.cap - b.cap) * capDir);
@@ -1285,11 +1331,11 @@ async function drawCapModels(id, money) {
     renderList($('#caplist'), shown, (m, i, anim) => `<div class="row rp ${anim ? 'anim' : ''}" data-i="${i}" ${stagger(i)}>${imgTag(mimg(m.gift, m.name))}<div class="t"><div class="n">${esc(m.name)}</div><div class="s">${esc(m.gift)} · ${(m.cap / total * 100).toFixed(2)}%</div></div><div class="p">${money(m.cap)}</div></div>`, true);
     const left = found.length - shown.length;
     if (left > 0) {
-      $('#caplist').insertAdjacentHTML('afterend', `<button class="rp more-btn" id="capmore">${T('cs_more')} ${Math.min(100, left)} · ${T('cs_left')} ${left}</button>`);
-      $('#capmore').onclick = () => { hap(); const y = view.scrollTop; limit += 100; render(); view.scrollTop = y; };
+      $('#caplist').insertAdjacentHTML('afterend', `<button class="rp more-btn" id="capmore">${T('cs_more')} ${Math.min(250, left)} · ${T('cs_left')} ${left}</button>`);
+      $('#capmore').onclick = () => { hap(); const y = view.scrollTop; limit += 250; render(); view.scrollTop = y; };
     }
   };
-  $('#cq').oninput = () => { limit = 100; render(); };
+  $('#cq').oninput = () => { limit = 250; render(); };
   $('#caplist').onclick = e => { const el = e.target.closest('[data-i]'); if (el) openLb(shown.map(m => ({ gift: m.gift, m })), +el.dataset.i); };
   const paintSort = () => { $('#csort').outerHTML = capSortBtn(); $('#csort button').onclick = () => { capDir = -capDir; hap(); paintSort(); render(); }; };
   paintSort();
@@ -1367,13 +1413,15 @@ const priceOf = (g, model, rows) => {
 };
 let profTab = 'mine', profFav = 'gift', mineCache = null;
 async function showProfile() {
-  const id = mount(`<div>${topbar(T('nav_profile'))}<div id="pf-hero"><div class="hero"><div class="hero-top" id="hero-top"></div><div id="hero-btns">${TILES_HTML()}</div></div></div>
+  const id = mount(`<div>${topbar('<svg class="hico-p" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4"/><path d="M4 20.5c1-4 4.2-6 8-6s7 2 8 6"/></svg>')}<div id="pf-hero"><div class="hero"><div class="hero-top" id="hero-top"></div><div id="hero-btns">${TILES_HTML()}</div></div></div>
         <div class="seg seg-s" id="pf-tabs">${['mine', 'favs', 'port'].map(k => `<button class="rp" data-v="${k}">${T('pf_' + k)}</button>`).join('')}</div>
     <div id="pf-body"><div class="empty">${T('loading')}</div></div></div>`);
   giftsCache ||= await api('/gifts');
   if (!U.ready) await U.load();
   if (id !== viewId) return;
   $('#tl-share').onclick = () => { hap(); shareSheet(); };
+  $('#tl-top').onclick = () => openTop();
+  $('#tl-friends').onclick = () => { hap(); openForm(T('pf_friends'), '<div id="fr-body"></div>', () => { drawFriends($('#fr-body')); loadFriendsCount(); }); };
   $('#tl-donate').onclick = () => { hap(); openForm(T('pf_donate'), '<div id="dn-body"></div>', () => drawDonate($('#dn-body'))); };
   drawHero(id);
   const body = $('#pf-body');
@@ -1388,8 +1436,9 @@ async function showProfile() {
 }
 // «Поделиться» из профиля: портфель, избранные модели, подарки или сэты уходят текстом со ссылкой на бота
 const shareLink = (text, link) => 'https://t.me/share/url?url=' + encodeURIComponent(text) + '&text=' + encodeURIComponent(link);  // сначала текст, ссылка на бота внизу
+const myId = () => tg?.initDataUnsafe?.user?.id;  // метка в ссылках «Поделиться»: кто пригласил
 function shareOut(text) {
-  const url = BOT_LINK, full = shareLink(text.slice(0, 3500), url);
+  const url = BOT_LINK + (myId() ? '?start=ref_' + myId() : ''), full = shareLink(text.slice(0, 3500), url);
   try { if (tg?.openTelegramLink) { tg.openTelegramLink(full); return; } } catch (e) {}
   try { if (navigator.share) { navigator.share({ url, text }); return; } } catch (e) {}
   window.open(full, '_blank');
@@ -1398,7 +1447,7 @@ async function shareSheet() {
   const favs = k => U.me.favs.filter(f => f.kind === k), hs = U.me.portfolio;
   const opts = [
     { k: 'app', n: -1, t: T('sh_app') }, { k: 'mine', n: mineCache ? mineCache.items.length : -1, t: T('sh_mine') },
-    { k: 'rank', n: -1, t: T('sh_rank') }, { k: 'duel', n: -1, t: T('sh_duel') },
+    { k: 'duel', n: -1, t: T('sh_duel') },
   ];
 
   openForm(T('share_t'), `<div class="frm">${opts.map(o => `<button class="mk rp ${o.n === 0 ? 'dis' : ''}" data-k="${o.k}"><span class="mk-n">${o.t}</span><span class="mk-p">${o.n >= 0 ? o.n : ''}</span></button>`).join('')}</div><div class="sh-note">${T('sh_note')}</div>`, () => {
@@ -1439,23 +1488,48 @@ ${T('pf_total')}: ${fmt(total)} GRAM`;
     });
   });
 }
-const TILES_HTML = () => `<div class="tiles"><button class="tile tdn rp" id="tl-donate"><b>${T('pf_donate')}</b></button>
-    <button class="tile tsh rp" id="tl-share"><b>${T('share_t')}</b></button></div>`;
+let friendsN = 0;
+const friendsLbl = () => T('pf_friends') + (friendsN > 0 ? ' ' + friendsN : '');
+const TILES_HTML = () => `<div class="tiles"><button class="tile tsh rp" id="tl-share"><b>${T('share_t')}</b></button>
+    <button class="tile tsh rp" id="tl-top"><b>${T('top_b')}</b></button>
+    <button class="tile tsh rp" id="tl-friends"><b><span id="fr-lbl">${friendsLbl()}</span></b></button>
+    <button class="tile tsh rp" id="tl-donate"><b>${T('pf_donate')}</b></button></div>`;
+async function loadFriendsCount() {  // «Друзья 1»: число приглашённых на кнопке
+  if (!U.auth) return;
+  try { const d = await api('/friends'); friendsN = d.count; const el = $('#fr-lbl'); if (el) el.textContent = friendsLbl(); } catch (e) {}
+}
 async function drawHero(id) {
   const u = tg?.initDataUnsafe?.user || {}, name = [u.first_name, u.last_name].filter(Boolean).join(' ') || T('pf_guest');
   const initials = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
   $('#hero-top').innerHTML = `<div class="ava">${u.photo_url ? `<img src="${esc(u.photo_url)}" alt="" onerror="this.remove()">` : ''}<i>${esc(initials || '?')}</i></div>
       <div class="hero-n"><div class="nm">${esc(name)}</div></div>`;
   paintRank();
+  loadFriendsCount();
 }
 
 // ранг коллекционера, дуэли и карточка роста
-const RK = v => v < 50 ? 1 : v < 500 ? 2 : v < 5000 ? 3 : v < 50000 ? 4 : 5;
+const RK = (v, n) => n === 0 ? 1 : v < 11 ? 2 : v < 101 ? 3 : v <= 1000 ? 4 : 5;  // Гой — нет NFT; дальше по стоимости в GRAM
 let mySnap = null;
 function paintRank() {
   const n = $('#hero-top .hero-n'); if (!n || !mySnap) return;
-  let el = n.querySelector('.rk'); if (!el) { el = document.createElement('div'); el.className = 'rk'; n.appendChild(el); }
-  el.textContent = T('rk' + RK(mySnap.total)) + ' · ' + fmt(mySnap.total) + ' GRAM';
+  let el = n.querySelector('.rk'); if (!el) { el = document.createElement('button'); el.className = 'rk rp'; el.onclick = openRanks; n.appendChild(el); }
+  el.textContent = T('rk' + RK(mySnap.total, mySnap.count));
+}
+const short15 = s => { const a = Array.from(String(s)); return a.length > 15 ? a.slice(0, 15).join('').trimEnd() + '…' : String(s); };  // ники в топе не длиннее 15 символов
+async function openTop() {
+  hap();
+  openForm(T('top_t'), '<div id="top-body"><div class="empty">' + T('loading') + '</div></div>', async () => {
+    let d; try { d = await api('/top-profiles'); } catch (e) { $('#top-body').innerHTML = `<div class="empty">${T('chart_fail')}</div>`; return; }
+    const rows = d.items.map((x, i) => `<div class="tpr ${x.me ? 'me' : ''}"><b>${i + 1}</b><span class="tn">${esc(short15(x.name))}<small>${T('rk' + RK(x.value, x.count))}</small></span><em>${fmt(Math.round(x.value))} GRAM</em></div>`).join('');
+    const me = d.me ? `<div class="s" style="margin:10px 2px 8px;color:var(--mute)">${T('top_you')}: <b style="color:#fff">#${d.me.pos}</b> · ${fmt(Math.round(d.me.value))} GRAM</div><button class="buy rp" id="top-hide">${d.me.hidden ? T('top_show') : T('top_hide')}</button>` : '';
+    $('#top-body').innerHTML = (rows || `<div class="empty">${T('top_empty')}</div>`) + me;
+    const hb = $('#top-hide'); if (hb) hb.onclick = async () => { hap(); try { await U.req('POST', '/top-hide', { hidden: !d.me.hidden }); } catch (e) {} openTop(); };
+  });
+}
+const RK_RANGE = ['0 NFT', '1 – 10 GRAM', '11 – 100 GRAM', '101 – 1000 GRAM', '1000+ GRAM'];
+function openRanks() {
+  hap(); const me = mySnap ? RK(mySnap.total, mySnap.count) : 0;
+  openForm(T('rk_t'), '<div class="frm">' + [1, 2, 3, 4, 5].map(i => `<div class="rl ${i === me ? 'me' : ''}"><span>${T('rk' + i)}</span><small>${RK_RANGE[i - 1]}</small></div>`).join('') + '</div>');
 }
 async function mineSummary() {
   if (!U.auth) return null;
@@ -1468,7 +1542,7 @@ async function mineSummary() {
 async function pushSnap(rows, total) {
   mySnap = { total, count: rows.length }; paintRank();
   const u = tg?.initDataUnsafe?.user || {};
-  try { await U.req('POST', '/pf-snapshot', { value: total, count: rows.length, name: u.first_name || '', top: rows.filter(x => x.model).slice(0, 3).map(x => ({ gift: x.gift, model: x.model })) }); } catch (e) {}
+  try { await U.req('POST', '/pf-snapshot', { value: total, count: rows.length, name: u.first_name || '', username: u.username || '', top: rows.filter(x => x.model).slice(0, 3).map(x => ({ gift: x.gift, model: x.model })) }); } catch (e) {}
 }
 async function shareUser(kind) {  // kind: r — карточка ранга, d — вызов на дуэль
   const uid = tg?.initDataUnsafe?.user?.id;
@@ -1486,7 +1560,7 @@ async function shareGrowth(gift) {
   hap();
   try {
     if (U.auth && tg?.shareMessage) {
-      const r = await fetch('/api/share-prepare', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Init-Data': tg.initData }, body: JSON.stringify({ kind: 'u', key: short(gift), lang: LANG }) });
+      const r = await fetch('/api/share-prepare', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Init-Data': tg.initData }, body: JSON.stringify({ kind: 'u', key: short(gift), lang: LANG, period: CAPKEY[gcDays] || '1d' }) });
       if (r.ok) { const j = await r.json(); tg.shareMessage(j.id); return; }
     }
   } catch (e) {}
@@ -1497,12 +1571,28 @@ async function openDuel(uid) {
   let o; try { o = await api('/duel/' + uid); } catch (e) { return; }
   if (!mySnap) { const s = await mineSummary(); if (s) await pushSnap(s.rows, s.total); }
   const mine = mySnap ? mySnap.total : 0, theirs = o.value || 0;
-  const side = (nm, v, win) => `<div class="dcol ${win ? 'win' : ''}"><div class="dn">${esc(nm)}</div><div class="dv">${fmt(v)}</div><div class="dg">GRAM</div><div class="dr">${T('rk' + RK(v))}</div></div>`;
-  openForm(T('duel_t'), `<div class="duel">${side(T('duel_you'), mine, mine > theirs)}<div class="dvs">VS</div>${side(o.name || '—', theirs, theirs > mine)}</div><div class="dres">${mine === theirs ? T('duel_draw') : mine > theirs ? T('duel_win') : T('duel_lose')}</div><button class="buy rp" id="du-ch">${T('duel_btn')}</button>`, () => { $('#du-ch').onclick = () => { closeForm(); shareUser('d'); }; });
+  const side = (nm, v, win, n) => `<div class="dcol ${win ? 'win' : ''}"><div class="dnm">${esc(nm)}</div><div class="dv">${fmt(v)}</div><div class="dgr">GRAM</div><div class="dr">${T('rk' + RK(v, n))}</div></div>`;
+  openForm(T('duel_t'), `<div class="duel">${side(T('duel_you'), mine, mine > theirs, mySnap ? mySnap.count : 0)}<div class="dvs">VS</div>${side(o.name || '—', theirs, theirs > mine, o.count)}</div><div class="dres">${mine === theirs ? T('duel_draw') : mine > theirs ? T('duel_win') : T('duel_lose')}</div><button class="buy rp" id="du-ch">${T('duel_btn')}</button>`, () => { $('#du-ch').onclick = () => { closeForm(); shareUser('d'); }; });
+}
+
+// «Друзья»: рефералы по личной ссылке бота
+async function drawFriends(body) {
+  if (!U.auth) { body.innerHTML = `<div class="empty">${T('mine_tg')}</div>`; return; }
+  const uid = tg?.initDataUnsafe?.user?.id, link = BOT_LINK + '?start=ref_' + uid;
+  body.innerHTML = `<div class="empty">${T('loading')}</div>`;
+  let d; try { d = await api('/friends'); } catch (e) { body.innerHTML = `<div class="empty">${T('chart_fail')}</div>`; return; }
+  const rows = d.items.map(x => `<div class="tpr"><span class="tn">${esc(short15(x.name))}<small>${T('rk' + RK(x.value, x.count))}</small></span><em>${x.count ? fmt(Math.round(x.value)) + GEM : ''}</em></div>`).join('');
+  body.innerHTML = `<div class="frs"><div class="fr-c"><b>${d.count}</b><span>${T('fr_invited')}</span></div><div class="fr-c"><b>${d.with_nft}</b><span>${T('fr_nft')}</span></div></div>
+    <button class="buy rp" id="fr-inv" style="margin-bottom:8px">${T('fr_invite')}</button><button class="rp cpy" id="fr-copy" style="width:100%;margin-bottom:12px">${T('fr_copy')}</button>
+    ${rows || `<div class="empty">${T('fr_empty')}</div>`}`;
+  $('#fr-inv').onclick = () => { hap(); const full = shareLink(T('app_tag'), link); try { if (tg?.openTelegramLink) { tg.openTelegramLink(full); return; } } catch (e) {} window.open(full, '_blank'); };
+  $('#fr-copy').onclick = async () => { hap(); try { await navigator.clipboard.writeText(link); $('#fr-copy').textContent = T('fr_copied'); setTimeout(() => $('#fr-copy') && ($('#fr-copy').textContent = T('fr_copy')), 1500); } catch (e) {} };
 }
 
 // «Мои гифты»: подарки из профиля Telegram (официальный метод Bot API через наш сервер) с ценами моделей
-let mineSig = '';
+let mineSig = '', mineUsd = false;
+const USDI = '<svg class="gem usdt" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#2fbf71"/><text x="12" y="17" text-anchor="middle" font-size="15" font-weight="800" fill="#fff" font-family="Arial,sans-serif">$</text></svg>';
+const mineTot = total => mineUsd && tonUsd ? fmt(total * tonUsd) + ' USD' : fmt(total) + ' GRAM';  // вместо слов — значок валюты
 async function drawMine(body, id, quiet) {
   if (!quiet) body.innerHTML = `<div class="empty">${T('loading')}</div>`;
   if (!U.auth) { body.innerHTML = `<div class="empty">${T('mine_tg')}</div>`; return; }
@@ -1519,7 +1609,9 @@ async function drawMine(body, id, quiet) {
   const total = rows.reduce((a, x) => a + (x.price || 0), 0);
   pushSnap(rows, total);
   if (!rows.length) { body.innerHTML = `<div class="empty">${T('mine_empty')}</div>`; return; }
-  body.innerHTML = `<div class="pcard pcmini"><div class="pcnt">${rows.length}</div><div class="gprice">${fmt(total)} GRAM</div></div><div id="mine-list"></div>`;
+  body.innerHTML = `<div class="pcard pcmini"><div class="pcnt"><svg class="pgift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-3-5 0 .5 1.5 3 1 5 0zm0 0c2-4 6-3 5 0-.5 1.5-3 1-5 0z"/></svg>${rows.length}</div><div class="gprice" id="mine-tot">${mineTot(total)}</div><button class="pcsh rp" id="mine-sh" aria-label="share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8l7.4-4.3M8.3 13.2l7.4 4.3"/></svg></button></div><div id="mine-list"></div>`;
+  $('#mine-sh').onclick = e => { e.stopPropagation(); hap(); shareUser('d'); };
+  $('.pcmini').onclick = () => { if (!tonUsd) return; mineUsd = !mineUsd; hap(); $('#mine-tot').innerHTML = mineTot(total); };  // нажатие на блок: GRAM <-> USDT
   const box = $('#mine-list');
   renderList(box, rows, (x, i, anim) => `<div class="row rp ${anim ? 'anim' : ''}" data-u="${esc(x.slug ? 'https://t.me/nft/' + x.slug : '')}" ${stagger(i)}><div class="nftimg" style="--c1:${esc(x.c1 || '#222')};--c2:${esc(x.c2 || '#111')}">${imgTag(mimg(x.gift, x.model || ''))}</div><div class="t"><div class="n">${esc(x.model || x.gift)}${x.model_r != null ? ' <span class="no">' + x.model_r / 10 + '%</span>' : ''}</div><div class="s">${esc(x.gift)} <span class="no">#${x.number}</span></div></div><div class="p">${fmt(x.price)}${GEM}</div></div>`, true);
   
@@ -1676,9 +1768,11 @@ function drawDonate(body) {
     <div class="dn-sep">${T('dn_crypto')}</div>
     <div class="dn-addr"><div class="addr" id="dn-addr">${WALLET}</div><button class="rp cpy" id="dn-copy">${T('dn_copy')}</button></div>
     <button class="buy rp" id="dn-gram" data-ton="gram">${T('dn_gram')}</button>
-    <button class="rp dn-hist" id="dn-hist">${T('dn_history')}</button>
-    <div class="sh-note" style="margin-top:8px">${T('dn_note')}</div>`;
+    <div class="dn-sep">${T('dn_gift_t')}</div>
+    <button class="rp cpy" id="dn-gift" style="width:100%;margin-bottom:10px">${T('dn_gift_b')}</button>
+    <button class="rp dn-hist" id="dn-hist">${T('dn_history')}</button>`;
   $('#dn-hist').onclick = () => { hap(); drawDonHistory(body); };
+  $('#dn-gift').onclick = () => { hap(); const u = 'https://t.me/rzabeyda'; try { if (tg?.openTelegramLink) { tg.openTelegramLink(u); return; } } catch (e) {} window.open(u, '_blank'); };
   document.querySelectorAll('#dn-amts button').forEach(b => b.onclick = () => { $('#dn-v').value = b.dataset.v; hap(); });
   $('#dn-go').onclick = async () => {
     const n = Math.round(+$('#dn-v').value); if (!(n >= 1 && n <= 10000)) return; hap();
@@ -1702,7 +1796,7 @@ function sharePayload() {
   return { p: '', text: T('app_tag') };
 }
 async function shareCurrent() {
-  const { p, text } = sharePayload(), url = BOT_LINK + (p ? '?start=' + p : '');
+  const { p, text } = sharePayload(), url = BOT_LINK + (p ? '?start=' + p + (myId() ? '-r' + myId() : '') : myId() ? '?start=ref_' + myId() : '');
   hap();
   const m = /^(g|t)_(.+)$/.exec(p);
   if (m && U.auth && tg?.shareMessage) {  // красивая карточка: картинка, название, цена и кнопка «Открыть»
@@ -1716,7 +1810,24 @@ async function shareCurrent() {
   try { if (navigator.share) { navigator.share({ text: text + '\n' + url }); return; } } catch (e) {}
   window.open(full, '_blank');
 }
-document.addEventListener('click', e => { if (e.target.closest('#share')) shareCurrent(); });
+// нажатие на заголовок главных экранов («Гифты», «Капа», «Профиль») открывает наш чат
+document.addEventListener('click', e => {
+  const h = e.target.closest('.top h1:not(.gt)');
+  if (!h || !TABOF[cur.name] || cur.arg) return;
+  hap(); const url = 'https://t.me/peeppo_chat';
+  try { if (tg?.openTelegramLink) { tg.openTelegramLink(url); return; } } catch (err) {}
+  window.open(url, '_blank');
+});
+function refreshApp() {
+  hap(); const b = $('#refresh-btn'); b?.classList.add('spin');
+  apiCache.clear(); themesCache = null; mineCache = null; for (const k in mpCache) delete mpCache[k];
+  Promise.all([api('/gifts'), api('/marketcap?days=1').catch(() => null)]).then(([g, m]) => {
+    giftsCache = g; if (m?.ton_usd) tonUsd = m.ton_usd;
+    try { localStorage.setItem('gc', JSON.stringify({ t: Date.now(), v: g })); } catch (e) {}
+    restoreState = { scroll: view.scrollTop, q: ($('#q') && $('#q').value) || '' }; routes[cur.name](cur.arg);
+  }).catch(() => b?.classList.remove('spin'));
+}
+document.addEventListener('click', e => { if (e.target.closest('#top-btn')) { openTop(); return; } if (e.target.closest('#refresh-btn')) { refreshApp(); return; } if (e.target.closest('#share')) shareCurrent(); });
 async function openDeepLink(sp) {
   try {
     giftsCache ||= await api('/gifts');
@@ -1738,7 +1849,7 @@ function loadPrefs() {
   if (ok('mapMode', ['map', 'top'])) mapMode = p.mapMode;
   if (ok('mapPeriod', PERIODS)) mapPeriod = p.mapPeriod;
   if (ok('topDir', ['up', 'down'])) topDir = p.topDir;
-  if (ok('mapSize', ['up', 'down', 'cap'])) mapSize = p.mapSize;
+  if (ok('mapSize', ['up', 'down'])) mapSize = p.mapSize;
   if (ok('capCur', ['usd', 'gram'])) capCur = p.capCur;
   if ([0.04, 1, 7, 30, 36500].includes(p.capDays)) capDays = p.capDays;
   if (ok('profTab', ['mine', 'favs', 'port'])) profTab = p.profTab;
@@ -1759,6 +1870,7 @@ showGifts();
 api('/marketcap?days=1').then(d => { tonUsd = d.ton_usd || null; repaintPrices(); }).catch(() => {});
 // один раз при открытии: свежие данные запоминаем для следующего запуска (экран на глазах не перерисовывается); заодно разогреваем цены «Моих гифтов»
 api('/gifts').then(v => {
+  tickCompute(v); tickPaint();
   try { localStorage.setItem('gc', JSON.stringify({ t: Date.now(), v })); } catch (e) {}
 }).catch(() => {});
 if (U.auth) setTimeout(async () => { try { const s = await mineSummary(); if (s) pushSnap(s.rows, s.total); } catch (e) {} }, 2500);

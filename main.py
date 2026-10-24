@@ -62,6 +62,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(keep_warm()),
         asyncio.create_task(alerts_loop()),
         asyncio.create_task(digest_loop()),
+        asyncio.create_task(snapshot_loop()),
         asyncio.create_task(new_gifts_loop()),
     ]
     yield
@@ -727,7 +728,7 @@ def render_card(title: str, sub: str, imgs: list, accent: tuple = (255, 170, 230
     tw = W - x0 - 70
     d.text((x0, 230), title, font=_fit(d, title, _FONT_B, 76, tw), fill=(255, 255, 255))
     d.text((x0, 345), sub, font=_fit(d, sub, _FONT_R, 46, tw), fill=accent)
-    d.text((x0, 600), "Gift Hub  \u00b7  @gift20bot", font=_font(_FONT_B, 34), fill=(190, 190, 200))
+    d.text((x0, 600), "@gift20bot", font=_font(_FONT_B, 34), fill=(190, 190, 200))
     buf = io.BytesIO()
     bg.save(buf, "JPEG", quality=88)
     return buf.getvalue()
@@ -754,45 +755,162 @@ def _card_data(kind: str, key: str, lang: str, gifts_list: list, themes_out: lis
     raise HTTPException(404)
 
 
-RANKS = [(50, "Новичок", "Newbie"), (500, "Коллекционер", "Collector"), (5000, "Эксперт", "Expert"), (50000, "Магнат", "Tycoon"), (float("inf"), "Кит", "Whale")]
+RANK_NAMES = [("Гой", "Goy"), ("Школотрон", "Newbie"), ("Хомяк", "Hamster"), ("Акула", "Shark"), ("Кит", "Whale")]
 
 
-def rank_name(v: float, ru: bool) -> str:
-    for lim, a, b in RANKS:
-        if v < lim:
-            return a if ru else b
-    return ""
+def rank_name(v: float, n: int, ru: bool) -> str:
+    """Гой — нет NFT; дальше по стоимости коллекции в GRAM: до 10, до 100, до 1000, больше."""
+    i = 0 if n == 0 else 1 if v < 11 else 2 if v < 101 else 3 if v <= 1000 else 4
+    return RANK_NAMES[i][0 if ru else 1]
 
 
 def _num(v: float) -> str:
     return f"{v:,.0f}".replace(",", " ") if v >= 100 else f"{v:g}"
 
 
-async def _card_ext(kind: str, key: str, lang: str):
+async def _card_ext(kind: str, key: str, lang: str, period: str = "1d"):
     """Карточки без списка подарков: ранг (r) и дуэль (d) пользователя, рост подарка за сутки (u). -> (заголовок, подпись, картинки, deep-link, цвет подписи)"""
     ru = lang == "ru"
     if kind in ("r", "d"):
-        rows = await q("SELECT pf_name, pf_value, pf_top FROM users WHERE tg_id = ? AND pf_ts IS NOT NULL", (int(key),)) if key.isdigit() else []
+        rows = await q("SELECT pf_name, pf_value, pf_count, pf_top FROM users WHERE tg_id = ? AND pf_ts IS NOT NULL", (int(key),)) if key.isdigit() else []
         if not rows:
             raise HTTPException(404)
         v = rows[0]["pf_value"] or 0
-        rk, val = rank_name(v, ru), _num(v)
+        rk, val = rank_name(v, rows[0]["pf_count"] or 0, ru), _num(v)
         ims = [_load_img("m", images.short(t["gift"]), images.mfile(t["model"])) for t in _json.loads(rows[0]["pf_top"] or "[]")]
         if kind == "r":
             return rows[0]["pf_name"] or ("Коллекционер" if ru else "Collector"), f"{rk} · {val} GRAM", ims, "r_" + key, (255, 170, 230)
-        return ("Бросаю вызов" if ru else "Duel challenge"), f"{val} GRAM · {rk}", ims, "d_" + key, (255, 170, 230)
+        return ("Сможешь больше?" if ru else "Can you beat it?"), f"{val} GRAM · {rk}", ims, "d_" + key, (255, 170, 230)
     g = next((x for x in await gifts() if images.short(x["name"]) == key), None)
-    ch = ((g or {}).get("changes") or {}).get("1d")
+    period = period if period in ("1h", "1d", "1w", "1m", "all") else "1d"
+    ch = ((g or {}).get("changes") or {}).get(period)
     if g is None or ch is None:
         raise HTTPException(404)
-    sub = f"{ch:+.1f}%  ·  {_num(g.get('floor_ton') or 0)} GRAM".replace("-", "−")
+    label = {"1h": ("за час", "1h"), "1d": ("за сутки", "24h"), "1w": ("за неделю", "7d"), "1m": ("за месяц", "30d"), "all": ("за всё время", "all time")}[period][0 if ru else 1]
+    sub = f"{ch:+.1f}% {label}  ·  {_num(g.get('floor_ton') or 0)} GRAM".replace("-", "−")
     return g["name"], sub, [_load_img("g", key)], "g_" + key, ((60, 230, 130) if ch >= 0 else (255, 90, 90))
+
+
+@app.get("/api/top-profiles")
+async def api_top_profiles(request: Request):
+    """Топ коллекций пользователей по стоимости; владелец и скрывшие себя в списке не показываются."""
+    uid = await current_user(request)
+    rows = await q("SELECT tg_id, pf_name, pf_user, pf_value, pf_count FROM users WHERE pf_ts IS NOT NULL AND tg_id != ? AND COALESCE(top_hidden, 0) = 0 ORDER BY pf_value DESC LIMIT 10", (OWNER_ID,))
+    me = await q("SELECT pf_value, pf_count, COALESCE(top_hidden, 0) AS hidden FROM users WHERE tg_id = ?", (uid,))
+    mine = None
+    if me and me[0]["pf_value"] is not None and uid != OWNER_ID:
+        ahead = (await q("SELECT COUNT(*) AS n FROM users WHERE pf_ts IS NOT NULL AND tg_id != ? AND COALESCE(top_hidden, 0) = 0 AND pf_value > ?", (OWNER_ID, me[0]["pf_value"])))[0]["n"]
+        mine = {"pos": ahead + 1, "value": me[0]["pf_value"], "count": me[0]["pf_count"], "hidden": bool(me[0]["hidden"])}
+    return {"items": [{"name": disp_name(r["pf_name"] or "", r["pf_user"] or ""), "value": r["pf_value"], "count": r["pf_count"], "me": r["tg_id"] == uid} for r in rows], "me": mine}
+
+
+class HideIn(BaseModel):
+    hidden: bool
+
+
+@app.post("/api/top-hide")
+async def api_top_hide(body: HideIn, request: Request):
+    uid = await current_user(request)
+    async with db.connect() as conn:
+        await conn.execute("UPDATE users SET top_hidden = ? WHERE tg_id = ?", (1 if body.hidden else 0, uid))
+        await conn.commit()
+    return {"ok": True}
+
+
+_INVIS = {chr(c) for c in (0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x2060, 0xfe0e, 0xfe0f, 0x3164, 0x2800, 0x00a0, 0xfeff)}
+
+
+def disp_name(name: str, user: str) -> str:
+    """Имя для списков: если ника нет или он из невидимых символов — @username."""
+    if name and any(not (ch.isspace() or ch in _INVIS) for ch in name):
+        return name
+    return "@" + user if user else "—"
+
+
+async def _chat_names(uid: int, token: str):
+    async with httpx.AsyncClient(timeout=15) as c:
+        ch = ((await c.post(f"https://api.telegram.org/bot{token}/getChat", json={"chat_id": uid})).json().get("result") or {})
+    return ch.get("first_name") or "", ch.get("username") or ""
+
+
+async def _calc_value(uid: int, token: str):
+    """Стоимость NFT из профиля пользователя на сервере (getUserGifts): модель по флору, иначе флор подарка. None — профиль недоступен."""
+    items, offset = [], ""
+    base = f"https://api.telegram.org/bot{token}"
+    async with httpx.AsyncClient(timeout=25) as c:
+        for _ in range(6):
+            r = (await c.post(base + "/getUserGifts", json={"user_id": uid, "limit": 100, "offset": offset, "exclude_unique": False})).json()
+            if not r.get("ok"):
+                return None
+            res = r["result"]
+            items += [x["gift"] for x in res.get("gifts", []) if x.get("type") == "unique"]
+            offset = res.get("next_offset") or ""
+            if not offset:
+                break
+            await asyncio.sleep(0.2)
+        name, uname = "", ""
+        try:
+            ch = ((await c.post(base + "/getChat", json={"chat_id": uid})).json().get("result") or {})
+            name, uname = ch.get("first_name") or "", ch.get("username") or ""
+        except Exception:
+            pass
+    eff, gl = await effective_floors(), {g["name"]: g for g in await gifts()}
+    vals = []
+    for g in items:
+        b, mo = g.get("base_name"), (g.get("model") or {}).get("name")
+        price = eff.get(b, {}).get(mo, (None, None))[0] if mo else None
+        if price is None:
+            price = (gl.get(b) or {}).get("floor_ton")
+        vals.append((price or 0, b, mo))
+    vals.sort(key=lambda v: -v[0])
+    return {"count": len(items), "value": sum(v[0] for v in vals), "name": name, "user": uname, "top": [{"gift": b, "model": mo} for _, b, mo in vals[:3] if mo]}
+
+
+async def snapshot_loop():
+    """Раз в 6 часов досчитывает стоимость коллекции тем, у кого нет свежего снимка (для топа); точнее — когда человек сам открывает приложение."""
+    await asyncio.sleep(180)
+    while True:
+        try:
+            token = os.getenv("BOT_TOKEN", "")
+            for u in await q("SELECT tg_id FROM users WHERE pf_user IS NULL LIMIT 60"):  # ники тем, у кого их ещё нет (значение сумм не трогаем)
+                try:
+                    nm, un = await _chat_names(u["tg_id"], token)
+                except Exception:
+                    nm, un = "", ""
+                async with db.connect() as conn:
+                    await conn.execute("UPDATE users SET pf_user=?, pf_name=COALESCE(NULLIF(pf_name, ''), NULLIF(?, '')) WHERE tg_id=?", (un, nm, u["tg_id"]))
+                    await conn.commit()
+                await asyncio.sleep(0.3)
+            users = await q("SELECT tg_id FROM users WHERE pf_ts IS NULL OR pf_ts < ? ORDER BY RANDOM() LIMIT 60", (int(time.time()) - 86400,))
+            for u in users:
+                r = await _calc_value(u["tg_id"], token)
+                if r:
+                    async with db.connect() as conn:
+                        await conn.execute("UPDATE users SET pf_value=?, pf_count=?, pf_top=?, pf_ts=?, pf_name=COALESCE(NULLIF(?, ''), pf_name), pf_user=? WHERE tg_id=?",
+                                           (r["value"], r["count"], _json.dumps(r["top"]), int(time.time()), r["name"], r["user"], u["tg_id"]))
+                        await conn.commit()
+                await asyncio.sleep(1)
+        except Exception as e:
+            logging.warning("snapshot: %s", e)
+        await asyncio.sleep(6 * 3600)
+
+
+@app.get("/api/friends")
+async def api_friends(request: Request):
+    """Рефералы пользователя: сколько привёл и кто из них с NFT."""
+    uid = await current_user(request)
+    total = (await q("SELECT COUNT(*) AS n FROM referrals WHERE inviter_id = ?", (uid,)))[0]["n"]
+    nft = (await q("SELECT COUNT(*) AS n FROM referrals r JOIN users u ON u.tg_id = r.invited_id WHERE r.inviter_id = ? AND COALESCE(u.pf_count, 0) > 0", (uid,)))[0]["n"]
+    rows = await q("SELECT u.pf_name, u.pf_user, u.pf_value, u.pf_count FROM referrals r LEFT JOIN users u ON u.tg_id = r.invited_id WHERE r.inviter_id = ? ORDER BY r.ts DESC LIMIT 50", (uid,))
+    return {"count": total, "with_nft": nft,
+            "items": [{"name": disp_name(r["pf_name"] or "", r["pf_user"] or ""), "value": r["pf_value"] or 0, "count": r["pf_count"] or 0} for r in rows]}
 
 
 class SnapIn(BaseModel):
     value: float
     count: int
     name: str = ""
+    username: str = ""
     top: list[dict] = []
 
 
@@ -804,8 +922,8 @@ async def api_pf_snapshot(body: SnapIn, request: Request):
         raise HTTPException(400, "bad request")
     top = [{"gift": str(t.get("gift", ""))[:80], "model": str(t.get("model", ""))[:120]} for t in body.top[:3]]
     async with db.connect() as conn:
-        await conn.execute("UPDATE users SET pf_value=?, pf_count=?, pf_name=?, pf_top=?, pf_ts=? WHERE tg_id=?",
-                           (body.value, body.count, body.name[:40], _json.dumps(top), int(time.time()), uid))
+        await conn.execute("UPDATE users SET pf_value=?, pf_count=?, pf_name=?, pf_top=?, pf_ts=?, pf_user=? WHERE tg_id=?",
+                           (body.value, body.count, body.name[:40], _json.dumps(top), int(time.time()), body.username[:40], uid))
         await conn.commit()
     return {"ok": True}
 
@@ -813,19 +931,19 @@ async def api_pf_snapshot(body: SnapIn, request: Request):
 @app.get("/api/duel/{uid}")
 async def api_duel(uid: int, request: Request):
     await current_user(request)
-    r = await q("SELECT pf_name, pf_value, pf_count FROM users WHERE tg_id = ? AND pf_ts IS NOT NULL", (uid,))
+    r = await q("SELECT pf_name, pf_user, pf_value, pf_count FROM users WHERE tg_id = ? AND pf_ts IS NOT NULL", (uid,))
     if not r:
         raise HTTPException(404)
-    return {"name": r[0]["pf_name"] or "", "value": r[0]["pf_value"] or 0, "count": r[0]["pf_count"] or 0}
+    return {"name": disp_name(r[0]["pf_name"] or "", r[0]["pf_user"] or ""), "value": r[0]["pf_value"] or 0, "count": r[0]["pf_count"] or 0}
 
 
 @app.get("/card/{kind}/{key}.jpg")
-async def share_card(kind: str, key: str, lang: str = "ru"):
+async def share_card(kind: str, key: str, lang: str = "ru", p: str = "1d"):
     """Публичная картинка-карточка (её забирает сам Telegram)."""
     if not re.fullmatch(r"[a-z0-9_\-]{1,64}", key) or kind not in ("g", "s", "r", "d", "u"):
         raise HTTPException(404)
     if kind in ("r", "d", "u"):
-        title, sub, ims, _, accent = await _card_ext(kind, key, "en" if lang == "en" else "ru")
+        title, sub, ims, _, accent = await _card_ext(kind, key, "en" if lang == "en" else "ru", p)
         return Response(render_card(title, sub, ims, accent), media_type="image/jpeg", headers={"Cache-Control": "public, max-age=120"})
     gl = await gifts() if kind == "g" else []
     th = (await api_themes()) if kind == "s" else None
@@ -837,6 +955,7 @@ class ShareIn(BaseModel):
     kind: str
     key: str
     lang: str = "ru"
+    period: str = "1d"
 
 
 @app.post("/api/share-prepare")
@@ -851,16 +970,16 @@ async def api_share_prepare(body: ShareIn, request: Request):
     if body.kind in ("r", "d", "u"):
         if body.kind != "u" and body.key != str(uid):
             raise HTTPException(403, "own profile only")
-        title, sub, _, start, _a = await _card_ext(body.kind, body.key, lang)
+        title, sub, _, start, _a = await _card_ext(body.kind, body.key, lang, body.period)
     else:
         gl = await gifts() if body.kind == "g" else []
         th = (await api_themes()) if body.kind == "s" else None
         title, sub, _, start = _card_data(body.kind, body.key, lang, gl, th)
     result = {"type": "photo", "id": hashlib.sha1(f"{body.kind}{body.key}{lang}".encode()).hexdigest()[:24],
-              "photo_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}&v={int(time.time())}", "thumbnail_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}&v={int(time.time())}",
+              "photo_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}&p={body.period}&v={int(time.time())}", "thumbnail_url": f"{base}/card/{body.kind}/{body.key}.jpg?lang={lang}&p={body.period}&v={int(time.time())}",
               "photo_width": 1280, "photo_height": 720, "title": title, "description": sub,
               "caption": f"{title}\n{sub}",
-              "reply_markup": {"inline_keyboard": [[{"text": "Open", "url": f"https://t.me/gift20bot?start={start}"}]]}}
+              "reply_markup": {"inline_keyboard": [[{"text": (("Принять вызов" if lang == "ru" else "Accept") if body.kind == "d" else "Open"), "url": f"https://t.me/gift20bot?start={start if start[:2] in ('d_', 'r_') else start + '-r' + str(uid)}"}]]}}
     async with httpx.AsyncClient(timeout=20) as c:
         r = await c.post(f"https://api.telegram.org/bot{token}/savePreparedInlineMessage",
                          json={"user_id": uid, "result": result, "allow_user_chats": True, "allow_bot_chats": False,

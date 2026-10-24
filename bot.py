@@ -57,6 +57,14 @@ def admin_stats() -> str:
 async def start(m: Message, command: CommandObject):
     # ссылка «Поделиться»: /start g_plush_pepe открывает приложение сразу на нужном экране
     arg = (command.args or "").strip()
+    ref = None
+    if arg.startswith("ref_") and arg[4:].isdigit():
+        ref, arg = int(arg[4:]), ""
+    elif arg[:2] in ("d_", "r_") and arg[2:].isdigit():
+        ref = int(arg[2:])
+    elif "-r" in arg and arg.rsplit("-r", 1)[1].isdigit():
+        arg, r = arg.rsplit("-r", 1)
+        ref = int(r)
     url = WEBAPP_URL + ("?s=" + arg if arg and re.fullmatch(r"[A-Za-z0-9_\-]{1,64}", arg) else "")
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="Open", web_app=WebAppInfo(url=url)),
@@ -67,12 +75,21 @@ async def start(m: Message, command: CommandObject):
         await m.answer_photo(FSInputFile(WELCOME), caption=caption, reply_markup=kb)
     else:
         await m.answer(caption, reply_markup=kb)
-    if m.from_user.id == OWNER_ID:
-        await m.answer("/admin", reply_markup=ReplyKeyboardRemove())  # убираем прежнюю кнопку Admin у владельца
-    elif record_user(m.from_user.id):  # новый пользователь: сообщение владельцу
+    if m.from_user.id != OWNER_ID and record_user(m.from_user.id):
+        inv = None  # кто пригласил (для сообщения владельцу)
+        if ref and ref != m.from_user.id:  # пришёл по чужой ссылке: засчитываем реферала
+            try:
+                con = sqlite3.connect(DB_PATH, timeout=10)
+                con.execute("INSERT OR IGNORE INTO referrals (invited_id, inviter_id, ts) VALUES (?,?,?)", (m.from_user.id, ref, int(time.time())))
+                con.commit()
+                row = con.execute("SELECT pf_user, pf_name FROM users WHERE tg_id = ?", (ref,)).fetchone()
+                con.close()
+                inv = ("@" + row[0]) if row and row[0] else ((row[1] if row and row[1] else None) or f"id {ref}")
+            except Exception:
+                pass
         who = f"@{m.from_user.username}" if m.from_user.username else (m.from_user.full_name or str(m.from_user.id))
         try:
-            await m.bot.send_message(OWNER_ID, f"Новый юзер {who}")
+            await m.bot.send_message(OWNER_ID, f"{inv} привёл {who}" if inv else f"Новый юзер {who}")
         except Exception:
             pass
 
@@ -113,7 +130,12 @@ async def paid(m: Message):
         await m.bot.send_message(OWNER_ID, f"Донат {sp.total_amount} Stars от {who}" + (chr(10) + msg if msg else ""))
     except Exception:
         pass
-    await m.answer("Спасибо за поддержку! / Thank you for your support!")
+    con = sqlite3.connect(DB_PATH, timeout=10)
+    row = con.execute("SELECT lang FROM users WHERE tg_id = ?", (m.from_user.id,)).fetchone()
+    con.close()
+    ru = (row[0] if row and row[0] else "ru") == "ru"
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="Open", web_app=WebAppInfo(url=WEBAPP_URL))]])
+    await m.answer("Спасибо за поддержку! Это помогает развивать Gifts." if ru else "Thank you for your support! It helps Gifts grow.", reply_markup=kb)
 
 
 _last_reply: dict[int, float] = {}
@@ -186,7 +208,7 @@ async def gift_by_name(m: Message):
     price = g["floor_ton"]
     p = f"{price:,.0f}".replace(",", " ") if price >= 100 else f"{price:g}"
     lines = [f"{g['name']} (/{_norm(text)})", ("Цена: " if ru else "Price: ") + p + " GRAM",
-             ("Сутки: " if ru else "24h: ") + _pct(ch.get("1d")), ("Неделя: " if ru else "7d: ") + _pct(ch.get("1w"))]
+             ("Сутки: " if ru else "24h: ") + _pct(ch.get("1d")), ("Месяц: " if ru else "30d: ") + _pct(ch.get("1m"))]
     url = WEBAPP_URL + "?s=g_" + re.sub(r"[^a-z ]", "", g["name"].lower()).strip().replace(" ", "_")
     if group:  # в группах без кнопок: текст и адрес бота внизу
         await m.answer(nl.join(lines + [nl + "@gift20bot"]))

@@ -267,11 +267,22 @@ async def collect_donations(client: httpx.AsyncClient) -> None:
     # входящими считаем переводы, где получатель — наш кошелёк (его raw-адрес совпадает у всех входящих)
     from collections import Counter
     mine = Counter(r[5] for r in rows).most_common(1)[0][0] if rows else None
+    fresh = []
     async with db.connect() as conn:
         for rid, ts, kind, who, amount, rec, msg in rows:
             if rec == mine:
-                await conn.execute("INSERT OR IGNORE INTO donations (id, ts, kind, who, amount, msg) VALUES (?,?,?,?,?,?)", (rid, ts, kind, who, amount, msg))
+                cur = await conn.execute("INSERT OR IGNORE INTO donations (id, ts, kind, who, amount, msg) VALUES (?,?,?,?,?,?)", (rid, ts, kind, who, amount, msg))
+                if cur.rowcount > 0 and ts > time.time() - 7200:  # новый донат (не старая запись из истории): скажем владельцу
+                    fresh.append((kind, who, amount, msg))
         await conn.commit()
+    token, owner = os.getenv("BOT_TOKEN", ""), os.getenv("OWNER_ID", "7308147004")
+    for kind, who, amount, msg in fresh:
+        label = {"ton": "GRAM", "usdt": "USDT"}.get(kind, kind)
+        text = f"Донат {amount:g} {label} от {who}" + (chr(10) + msg if msg else "")
+        try:
+            await client.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": int(owner), "text": text})
+        except Exception:
+            pass
 
 
 async def collect_peek(client: httpx.AsyncClient) -> None:
