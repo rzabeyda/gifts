@@ -20,6 +20,9 @@ SRC = {
     "m": ["https://cdn.jsdelivr.net/gh/ssamy2/TelegramGiftsAssests@main/models/{a}/{b}.webp",
           "https://raw.githubusercontent.com/ssamy2/TelegramGiftsAssests/main/models/{a}/{b}.webp"],
 }
+CHANGES_ORIG = "https://api.changes.tg/original/{g}.png"  # картинка подарка из каталога GiftChanges
+# подарки, у которых в TG_Photos лежит чужая картинка (проверено глазами); у остальных базовая картинка из TG_Photos
+GIFT_IMG_FROM_CATALOG = {"Mood Pack", "Rare Bird"}
 CHANGES_PNG = "https://api.changes.tg/model/{g}/{m}.png"  # запасной источник: нет в датасете (credit: @GiftChanges)
 
 
@@ -40,7 +43,7 @@ def ok_part(b: str) -> bool:
 
 def path_for(kind: str, a: str, b: str, full: bool) -> Path:
     key = b if SAFE.match(b or "x") else hashlib.sha1(b.encode()).hexdigest()[:16]  # странные имена -> хэш
-    return CACHE / f"{kind}_{a}_{key}_{512 if full else 112}.webp"
+    return CACHE / f"{'g2' if kind == 'g' else kind}_{a}_{key}_{512 if full else 112}.webp"  # g2: картинки подарков заново, из каталога
 
 
 def _resize(data: bytes, path: Path, full: bool) -> None:
@@ -72,7 +75,9 @@ async def ensure(client: httpx.AsyncClient, kind: str, a: str, b: str, full: boo
     if miss.exists() and time.time() - miss.stat().st_mtime < miss_ttl:
         return None
     data = None
-    for tpl in SRC[kind]:
+    if kind == "g" and names and names[0] in GIFT_IMG_FROM_CATALOG:  # для отдельных подарков сначала каталог GiftChanges
+        data = await _get(client, CHANGES_ORIG.format(g=quote(names[0], safe="")))
+    for tpl in ([] if data else SRC[kind]):
         data = await _get(client, tpl.format(a=a, b=quote(b, safe="")))
         if data:
             break

@@ -232,6 +232,48 @@ async def collect_peek_models(client: httpx.AsyncClient) -> None:
     log.info("peek models: %d/%d priced", done, len(todo))
 
 
+DONATE_WALLET = "UQAgX7QqhUKcEfW-7C4e2Z9x_A6iIvsDZJ9zI05H96-wvmPK"
+# отправители, чьи переводы не считаются донатами (например, свои кошельки владельца)
+IGNORE_SENDERS = {"0:ebffd0fc20f4665439589839c389576ae91783f9c22c9a3d0ce1c5d68d3baaf2"}
+
+
+async def collect_donations(client: httpx.AsyncClient) -> None:
+    """Входящие переводы GRAM (TON) и USDT на кошелёк для доната: открытый tonapi, раз в 10 минут."""
+    r = await client.get(f"https://tonapi.io/v2/accounts/{DONATE_WALLET}/events", params={"limit": 100})
+    r.raise_for_status()
+    rows = []
+    for ev in r.json().get("events", []):
+        for a in ev.get("actions", []):
+            if a.get("status") != "ok":
+                continue
+            t = a.get("type")
+            x = a.get(t) or {}
+            rec = (x.get("recipient") or {}).get("address")
+            sen = x.get("sender") or {}
+            if t == "TonTransfer":
+                kind, amount = "ton", (x.get("amount") or 0) / 1e9
+            elif t == "JettonTransfer" and (x.get("jetton") or {}).get("symbol") in ("USD₮", "USDT"):
+                kind, amount = "usdt", int(x.get("amount") or 0) / 10 ** int((x.get("jetton") or {}).get("decimals") or 6)
+            else:
+                continue
+            if not rec or amount <= 0:
+                continue
+            if sen.get("address") in IGNORE_SENDERS:
+                continue
+            addr = sen.get("name") or sen.get("address") or "?"
+            who = sen.get("name") or (addr[:4] + "…" + addr[-4:] if len(addr) > 12 else addr)
+            msg = str(x.get("comment") or "").strip()[:50] or None  # комментарий к переводу
+            rows.append((f"{ev['event_id']}:{t}", int(ev["timestamp"]), kind, who, amount, (x.get("recipient") or {}).get("address"), msg))
+    # входящими считаем переводы, где получатель — наш кошелёк (его raw-адрес совпадает у всех входящих)
+    from collections import Counter
+    mine = Counter(r[5] for r in rows).most_common(1)[0][0] if rows else None
+    async with db.connect() as conn:
+        for rid, ts, kind, who, amount, rec, msg in rows:
+            if rec == mine:
+                await conn.execute("INSERT OR IGNORE INTO donations (id, ts, kind, who, amount, msg) VALUES (?,?,?,?,?,?)", (rid, ts, kind, who, amount, msg))
+        await conn.commit()
+
+
 async def collect_peek(client: httpx.AsyncClient) -> None:
     """Сводка с peek.tg: один открытый запрос (без входа в Telegram), раз в 15 минут. Нужна ради issued — числа улучшенных."""
     r = await client.get("https://server.peek.tg/api/nft/stats/gift/all", params={"period": "24h", "sort": "change", "order": "desc", "limit": 500},
@@ -532,7 +574,7 @@ async def prewarm_images(client: httpx.AsyncClient) -> None:
             if await images.ensure(client, kind, a, b, False, miss_ttl=7 * 86400, names=names):
                 done += 1
 
-    await asyncio.gather(*(one("g", images.short(g), "") for g in gifts))  # сначала подарки
+    await asyncio.gather(*(one("g", images.short(g), "", (g, "")) for g in gifts))  # сначала подарки
     await asyncio.gather(*(one("m", images.short(g), images.mfile(m), (g, m)) for g, m in models))
     log.info("images ready: %d", done)
 

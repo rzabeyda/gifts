@@ -126,8 +126,8 @@
   .seg-s { margin-top:-4px; } .seg-s button { padding:7px 0; font-size:13px; border-radius:12px; }
   #lb-body { width:100%; max-width:430px; }
   #lb-body.sl { animation:slL .28s ease both; } #lb-body.sr { animation:slR .28s ease both; }
-  @keyframes slL { from { opacity:0; transform:translateX(46px); } to { opacity:1; transform:none; } }
-  @keyframes slR { from { opacity:0; transform:translateX(-46px); } to { opacity:1; transform:none; } }
+  @keyframes slL { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+  @keyframes slR { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
   #lb-imgwrap { display:flex; align-items:center; justify-content:space-between; gap:6px; }
   #lb-imgwrap img { flex:0 1 29%; max-width:29%; min-width:0; margin:0 auto; }  /* иконка модели вдвое меньше, чтобы график и кнопки были выше */
   .lbn { width:44px; height:44px; flex:none; border-radius:50%; border:1.5px solid #fff; background:#0b0b0d; color:#fff;
@@ -293,7 +293,7 @@
   .gst span { display:block; color:#b9bcc4; font-size:11px; font-weight:600; }
   .gst b { display:block; color:#fff; font-size:15px; font-weight:800; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
   .gst b.pgn { color:var(--up); text-shadow:0 0 10px rgba(57,255,136,.55); } .gst b.pls { color:var(--down); text-shadow:0 0 10px rgba(255,77,87,.55); }
-  .gst b .gem { width:12px; height:12px; margin-left:3px; }
+  .gst b .gem { width:12px; height:12px; margin-left:3px; } .gst b .usdt { width:15px; height:15px; margin-left:4px; vertical-align:-2px; } .gst[data-price] { cursor:pointer; }
   .gst b .up { color:var(--up) !important; } .gst b .dn { color:var(--down) !important; } .gst b .fl { color:#b9bcc4 !important; }
   .gst b .chg { font-size:14px; justify-content:center; } .gst b .chg svg { width:10px; height:10px; }
   .ghrow { display:flex; align-items:center; justify-content:space-between; gap:6px; } .ghrow img { flex:0 1 36%; }
@@ -310,6 +310,12 @@
   .dn-addr { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:14px; border:1px solid rgba(255,255,255,.85); box-shadow:0 0 10px rgba(255,255,255,.3); margin-bottom:8px; } .dn-addr .addr { flex:1; min-width:0; margin:0; font-size:10.5px; line-height:1.3; } .dn-addr .cpy { flex:none; padding:7px 10px; }
   #dn-gram { padding:11px; font-size:15px; margin:0; color:#fff; background:linear-gradient(135deg, #2f8dff, #1559c9); border:1.5px solid #6db3ff; box-shadow:0 0 0 1px rgba(109,179,255,.45), 0 0 14px rgba(109,179,255,.9), 0 0 34px rgba(109,179,255,.45); }
   #dn-go { color:#1a1200; background:linear-gradient(135deg, #ffd84a, #f2a900); border:1.5px solid #ffe36b; box-shadow:0 0 0 1px rgba(255,227,107,.5), 0 0 14px rgba(255,216,74,.9), 0 0 34px rgba(255,216,74,.45); }
+  .dn-msg { width:100%; box-sizing:border-box; margin:0 0 8px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.85); background:var(--card); color:#fff; font-size:14px; font-family:inherit; }
+  .dn-hist { width:100%; margin-top:8px; padding:11px; border-radius:16px; border:1.5px solid #fff; background:#0b0b0d; color:#fff; font-size:15px; font-weight:700; box-shadow:0 0 12px rgba(255,255,255,.55), 0 0 26px rgba(255,255,255,.2); }
+  .dn-hh { display:flex; align-items:center; gap:10px; margin:-2px 0 10px; } .dn-hh b { font-size:17px; }
+  .dn-list { max-height:56vh; overflow-y:auto; } .dn-tot { color:var(--mute); font-size:13px; margin:0 2px 8px; } .dn-tot b { color:#fff; }
+  .dn-it { display:grid; grid-template-columns:1fr auto; gap:0 10px; padding:9px 12px; margin-bottom:6px; border-radius:14px; border:1px solid rgba(255,255,255,.7); background:var(--card); }
+  .dn-w { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .dn-d { grid-row:2; color:var(--mute); font-size:12px; } .dn-it b { grid-row:1 / 3; grid-column:2; align-self:center; font-variant-numeric:tabular-nums; }
   .sh-note { color:var(--mute); font-size:12.5px; margin-top:6px; line-height:1.45; }
   @media (prefers-reduced-motion:reduce) { * { animation:none !important; transition:none !important; } }
 </style>
@@ -349,8 +355,8 @@ const $ = s => document.querySelector(s), view = $('#view');
 let LANG = 'ru';
 try { LANG = localStorage.getItem('lang') || ((tg?.initDataUnsafe?.user?.language_code || navigator.language || 'ru').slice(0, 2) === 'ru' ? 'ru' : 'en'); } catch (e) {}
 const I18N = {
-  ru: { nav_gifts: 'Гифты', nav_themes: 'Сэты', nav_map: 'Пузыри', nav_cap: 'Капа', title_map: 'Пузыри', pcs: 'шт.', retry: 'Повторить', app_tag: 'Всё про Telegram Gifts в одной апке', b_price: 'Цена', b_change: 'Рост', b_rarity: 'Редкость', b_qty: 'Тираж', model_price: 'Цена модели', hub4_gifts: 'Подарки', hub4_pmodels: 'Модели', hub4_map: 'Пузыри', hub4_themes: 'Сэты', mine_bd: 'с фоном', hf_pick_gift: 'Выбери подарок', pf_sum: 'Итого', pf_add_more: 'Добавить ещё', tg_gifts: 'Коллекции', tg_models: 'Модели', pf_mine: 'Мои гифты', mine_tg: 'Список подарков доступен в приложении внутри Telegram.', mine_empty: 'Не вижу подарков. Они должны быть показаны в твоём профиле Telegram, и ты должен был открыть бота.', mine_total: 'Стоимость моих гифтов', mine_rest: 'Ещё {n} в профиле: обычные подарки без улучшения, их не считаем.', hub_pmodels: 'Модели', hub_backdrops: 'Фоны', pm_exp: 'Дорогие', pm_cheap: 'Дешёвые', pm_note: 'Топ-100 по цене. Ищи по названию, чтобы найти нужную модель.', nothing: 'Ничего не найдено', bd_rare: 'Редкие', bd_common: 'Частые', bd_note: 'Фоны подарков: чем меньше процент, тем реже фон встречается (в среднем по коллекциям).', bd_g: 'кол.', auth_t: 'Откройте приложение в Telegram', auth_b: 'Открыть бота', pf_favs: 'Избранное', sh_port: 'Мой портфель', sh_mine: 'Мои гифты', sh_mine_h: 'Мои гифты в Gift Hub:', sh_models: 'Мои модели', sh_gifts: 'Мои подарки', sh_sets: 'Мои сэты', sh_app: 'Приложение', sh_note: 'Отправится текстом со ссылкой на бота.', sh_head: '', sh_port_h: 'Мой портфель в Gift Hub:', sh_models_h: 'Мои избранные модели в Gift Hub:', sh_gifts_h: 'Мои избранные подарки в Gift Hub:', sh_sets_h: 'Мои избранные сэты в Gift Hub:', tl_donate: 'Поддержать проект', tl_share: 'Расскажи друзьям', pf_guest: 'Гость', pf_positions: 'Позиции', pf_value: 'Стоимость', pf_port: 'Портфель', pf_alerts: 'Уведомления', pf_donate: 'Донат', pf_f_gift: 'Подарки', pf_f_model: 'Модели', pf_f_set: 'Сэты', pf_fav_empty: 'Здесь пока пусто. Нажми звёздочку на подарке, модели или сэте.', pf_total: 'Стоимость портфеля', pf_add: 'Добавить', pf_port_empty: 'Добавь свои подарки, и я посчитаю их стоимость.', pf_qty: 'Количество', pf_save: 'Сохранить', pf_whole: 'Весь подарок (по флору)', pf_al_note: 'Бот пришлёт сообщение, когда условие выполнится. Проверка каждые несколько минут.', pf_al_tg: 'Уведомления работают только в приложении внутри Telegram.', pf_al_add: 'Новое уведомление', pf_al_empty: 'Уведомлений пока нет.', pf_al_val: 'Значение (GRAM или %)', pf_c_below: 'Цена ниже', pf_c_above: 'Цена выше', pf_c_change: 'Изменение за сутки больше', dn_title: 'Поддержать проект', dn_text: 'Gifts бесплатный. Если он полезен, можно поддержать его развитие любой суммой.', dn_stars: 'Telegram Stars', dn_amount: 'Сумма в Stars', dn_send: 'Отправить Stars', dn_crypto: 'GRAM и USDT (сеть TON)', dn_addr: 'Адрес кошелька', dn_copy: 'Скопировать адрес', dn_copied: 'Скопировано', dn_gram: 'Отправить GRAM', dn_usdt: 'Отправить USDT', dn_note: 'GRAM — это TON. USDT отправляй только в сети TON.', dn_thanks: 'Спасибо за поддержку!',  hub_gifts: 'Подарки', hub_map: 'Пузыри', hub_themes: 'Сэты', nav_profile: 'Профиль', share_t: 'Поделиться',  search_set: 'Поиск сета', f_gift: 'Все гифты', f_model: 'Все модели', lots: 'Дешёвые лоты', no_lots: 'нет лотов', live_wait: 'Ищу живые лоты на маркетах…', buy_note_live: 'Цены и лоты — реальные предложения сейчас (обновляются раз в несколько минут). Нажми на лот, чтобы открыть подарок.', models_tab: 'Модели', grp_all: 'Все', grp_pets: 'Питомцы', grp_gems: 'Цвет', grp_status: 'Статус', grp_other: 'Прочее', buy: 'Купить', buy_title: 'Где купить', buy_on: 'Купить на', best: 'лучшая цена', no_price: 'цена на маркете', buy_note: 'Цены — это цена подарка (коллекции) на каждом маркете, самый дешёвый сверху. Цена конкретной модели может отличаться.', mode_map: 'Гифты', mode_top: 'Модели', dir_up: 'Рост', dir_down: 'Падение', top_wait: 'Данные за этот период ещё копятся', size_profit: 'Профит', size_cap: 'Капа', note_up: 'топ-9 по росту цены за период: чем больше процент, тем больше пузырь', note_down: 'топ-9 по падению цены за период: чем больше процент, тем больше пузырь',  note_cap: 'топ-9 по капитализации: размер пузыря — капитализация, процент — изменение цены', note_top: 'топ-9 моделей по изменению цены за период: чем больше процент, тем больше пузырь', map_note: 'размер — капитализация, цвет — изменение цены за период', back: 'Назад', up: 'Наверх',
-    title_gifts: 'Гифты', title_themes: 'Сэты', title_cap: 'Капитализация',
+  ru: { nav_gifts: 'Гифты', nav_themes: 'Сэты', nav_map: 'Пузыри', nav_cap: 'Капа', title_map: 'Пузыри', pcs: 'шт.', dn_msg: 'Сообщение (до 50 символов)', dn_history: 'История донатов', dn_total: 'Всего', dn_none: 'Пока донатов нет. Будь первым!', retry: 'Повторить', app_tag: 'Всё про Telegram Gifts в одной апке', b_price: 'Цена', b_change: 'Рост', b_rarity: 'Редкость', b_qty: 'Тираж', model_price: 'Цена модели', hub4_gifts: 'Подарки', hub4_pmodels: 'Модели', hub4_map: 'Пузыри', hub4_themes: 'Сэты', mine_bd: 'с фоном', hf_pick_gift: 'Выбери подарок', pf_sum: 'Итого', pf_add_more: 'Добавить ещё', tg_gifts: 'Коллекции', tg_models: 'Модели', pf_mine: 'Мои гифты', mine_tg: 'Список подарков доступен в приложении внутри Telegram.', mine_empty: 'Не вижу подарков. Они должны быть показаны в твоём профиле Telegram, и ты должен был открыть бота.', mine_total: 'Стоимость моих гифтов', mine_rest: 'Ещё {n} в профиле: обычные подарки без улучшения, их не считаем.', hub_pmodels: 'Модели', hub_backdrops: 'Фоны', pm_exp: 'Дорогие', pm_cheap: 'Дешёвые', pm_note: 'Топ-100 по цене. Ищи по названию, чтобы найти нужную модель.', nothing: 'Ничего не найдено', bd_rare: 'Редкие', bd_common: 'Частые', bd_note: 'Фоны подарков: чем меньше процент, тем реже фон встречается (в среднем по коллекциям).', bd_g: 'кол.', auth_t: 'Откройте приложение в Telegram', auth_b: 'Открыть бота', pf_favs: 'Избранное', sh_port: 'Мой портфель', sh_mine: 'Мои гифты', sh_mine_h: 'Мои гифты в Gift Hub:', sh_models: 'Мои модели', sh_gifts: 'Мои подарки', sh_sets: 'Мои сэты', sh_app: 'Приложение', sh_note: 'Отправится текстом со ссылкой на бота.', sh_head: '', sh_port_h: 'Мой портфель в Gift Hub:', sh_models_h: 'Мои избранные модели в Gift Hub:', sh_gifts_h: 'Мои избранные подарки в Gift Hub:', sh_sets_h: 'Мои избранные сэты в Gift Hub:', tl_donate: 'Поддержать проект', tl_share: 'Расскажи друзьям', pf_guest: 'Гость', pf_positions: 'Позиции', pf_value: 'Стоимость', pf_port: 'Портфель', pf_alerts: 'Уведомления', pf_donate: 'Донат', pf_f_gift: 'Подарки', pf_f_model: 'Модели', pf_f_set: 'Сэты', pf_fav_empty: 'Здесь пока пусто. Нажми звёздочку на подарке, модели или сэте.', pf_total: 'Стоимость портфеля', pf_add: 'Добавить', pf_port_empty: 'Добавь свои подарки, и я посчитаю их стоимость.', pf_qty: 'Количество', pf_save: 'Сохранить', pf_whole: 'Весь подарок (по флору)', pf_al_note: 'Бот пришлёт сообщение, когда условие выполнится. Проверка каждые несколько минут.', pf_al_tg: 'Уведомления работают только в приложении внутри Telegram.', pf_al_add: 'Новое уведомление', pf_al_empty: 'Уведомлений пока нет.', pf_al_val: 'Значение (GRAM или %)', pf_c_below: 'Цена ниже', pf_c_above: 'Цена выше', pf_c_change: 'Изменение за сутки больше', dn_title: 'Поддержать проект', dn_text: 'Gifts бесплатный. Если он полезен, можно поддержать его развитие любой суммой.', dn_stars: 'Telegram Stars', dn_amount: 'Сумма в Stars', dn_send: 'Отправить Stars', dn_crypto: 'GRAM и USDT (сеть TON)', dn_addr: 'Адрес кошелька', dn_copy: 'Скопировать адрес', dn_copied: 'Скопировано', dn_gram: 'Отправить GRAM', dn_usdt: 'Отправить USDT', dn_note: 'GRAM — это TON. USDT отправляй только в сети TON.', dn_thanks: 'Спасибо за поддержку!',  hub_gifts: 'Подарки', hub_map: 'Пузыри', hub_themes: 'Сэты', nav_profile: 'Профиль', share_t: 'Поделиться',  search_set: 'Поиск сета', f_gift: 'Все гифты', f_model: 'Все модели', lots: 'Дешёвые лоты', no_lots: 'нет лотов', live_wait: 'Ищу живые лоты на маркетах…', buy_note_live: 'Цены и лоты — реальные предложения сейчас (обновляются раз в несколько минут). Нажми на лот, чтобы открыть подарок.', models_tab: 'Модели', grp_all: 'Все', grp_pets: 'Питомцы', grp_gems: 'Цвет', grp_status: 'Статус', grp_other: 'Прочее', buy: 'Купить', buy_title: 'Где купить', buy_on: 'Купить на', best: 'лучшая цена', no_price: 'цена на маркете', buy_note: 'Цены — это цена подарка (коллекции) на каждом маркете, самый дешёвый сверху. Цена конкретной модели может отличаться.', mode_map: 'Гифты', mode_top: 'Модели', dir_up: 'Рост', dir_down: 'Падение', top_wait: 'Данные за этот период ещё копятся', size_profit: 'Профит', size_cap: 'Капа', note_up: 'топ-9 по росту цены за период: чем больше процент, тем больше пузырь', note_down: 'топ-9 по падению цены за период: чем больше процент, тем больше пузырь',  note_cap: 'топ-9 по капитализации: размер пузыря — капитализация, процент — изменение цены', note_top: 'топ-9 моделей по изменению цены за период: чем больше процент, тем больше пузырь', map_note: 'размер — капитализация, цвет — изменение цены за период', back: 'Назад', up: 'Наверх',
+    title_gifts: 'Гифты', title_themes: 'Сэты', title_cap: 'Капитал-ия',
     search_gift: 'Поиск подарка', search_model: 'Поиск модели',
     sort_price: 'Цена', sort_cap: 'Капа', sort_supply: 'Тираж', sort_chg: 'Рост', sort_rarity: 'Редкость',
     p_1h: '1ч', p_1d: '1д', p_1w: '1н', p_1m: '1м', p_all: 'Всё',
@@ -362,7 +368,7 @@ const I18N = {
     ago_min: 'мин назад', ago_h: 'ч назад', ago_d: 'дн назад', models_w: 'моделей', from_w: 'от',
     cap_note: 'оценка: тираж × цена подарка, по всем подаркам',
     cap_wait: 'История копится: график появится, когда наберётся больше одной точки.' },
-  en: { nav_gifts: 'Gifts', nav_themes: 'Sets', nav_map: 'Bubbles', nav_cap: 'Cap', title_map: 'Bubbles', pcs: 'pcs', retry: 'Retry', app_tag: 'Everything about Telegram Gifts in one app', b_price: 'Price', b_change: 'Growth', b_rarity: 'Rarity', b_qty: 'Supply', model_price: 'Model price', hub4_gifts: 'Gifts', hub4_pmodels: 'Models', hub4_map: 'Bubbles', hub4_themes: 'Sets', mine_bd: 'incl. backdrop', hf_pick_gift: 'Pick a gift', pf_sum: 'Total', pf_add_more: 'Add more', tg_gifts: 'Collections', tg_models: 'Models', pf_mine: 'My gifts', mine_tg: 'The gift list is available in the app inside Telegram.', mine_empty: 'No gifts found. They must be shown on your Telegram profile, and you must have opened the bot.', mine_total: 'Value of my gifts', mine_rest: '{n} more on your profile: regular gifts that are not upgraded, not counted.', hub_pmodels: 'Models', hub_backdrops: 'Backdrops', pm_exp: 'Expensive', pm_cheap: 'Cheap', pm_note: 'Top 100 by price. Search by name to find a model.', nothing: 'Nothing found', bd_rare: 'Rare', bd_common: 'Common', bd_note: 'Gift backdrops: the lower the percent, the rarer the backdrop (average over collections).', bd_g: 'coll.', auth_t: 'Open the app inside Telegram', auth_b: 'Open the bot', pf_favs: 'Favorites', sh_port: 'My portfolio', sh_mine: 'My gifts', sh_mine_h: 'My gifts in Gift Hub:', sh_models: 'My models', sh_gifts: 'My gifts', sh_sets: 'My sets', sh_app: 'The app', sh_note: 'Sent as text with a link to the bot.', sh_head: '', sh_port_h: 'My portfolio in Gift Hub:', sh_models_h: 'My favorite models in Gift Hub:', sh_gifts_h: 'My favorite gifts in Gift Hub:', sh_sets_h: 'My favorite sets in Gift Hub:', tl_donate: 'Support the project', tl_share: 'Tell your friends', pf_guest: 'Guest', pf_positions: 'Items', pf_value: 'Value', pf_port: 'Portfolio', pf_alerts: 'Alerts', pf_donate: 'Donate', pf_f_gift: 'Gifts', pf_f_model: 'Models', pf_f_set: 'Sets', pf_fav_empty: 'Nothing here yet. Tap the star on a gift, model or set.', pf_total: 'Portfolio value', pf_add: 'Add', pf_port_empty: 'Add your gifts and I will calculate their value.', pf_qty: 'Quantity', pf_save: 'Save', pf_whole: 'Whole gift (floor price)', pf_al_note: 'The bot will message you when the condition is met. Checked every few minutes.', pf_al_tg: 'Alerts only work in the app inside Telegram.', pf_al_add: 'New alert', pf_al_empty: 'No alerts yet.', pf_al_val: 'Value (GRAM or %)', pf_c_below: 'Price below', pf_c_above: 'Price above', pf_c_change: 'Daily change over', dn_title: 'Support the project', dn_text: 'Gifts is free. If it is useful, you can support its development with any amount.', dn_stars: 'Telegram Stars', dn_amount: 'Amount in Stars', dn_send: 'Send Stars', dn_crypto: 'GRAM and USDT (TON network)', dn_addr: 'Wallet address', dn_copy: 'Copy address', dn_copied: 'Copied', dn_gram: 'Send GRAM', dn_usdt: 'Send USDT', dn_note: 'GRAM is TON. Send USDT only on the TON network.', dn_thanks: 'Thank you for your support!',  hub_gifts: 'Gifts', hub_map: 'Bubbles', hub_themes: 'Sets', nav_profile: 'Profile', share_t: 'Share',  search_set: 'Search sets', f_gift: 'All gifts', f_model: 'All models', lots: 'Cheapest listings', no_lots: 'no listings', live_wait: 'Looking for live listings…', buy_note_live: 'Prices and listings are real offers right now (refreshed every few minutes). Tap a listing to open the gift.', models_tab: 'Models', grp_all: 'All', grp_pets: 'Pets', grp_gems: 'Color', grp_status: 'Status', grp_other: 'Other', buy: 'Buy', buy_title: 'Where to buy', buy_on: 'Buy on', best: 'best price', no_price: 'price on the market', buy_note: 'Prices are the gift (collection) floor on each market, cheapest first. A specific model may cost differently.', mode_map: 'Gifts', mode_top: 'Models', dir_up: 'Growth', dir_down: 'Decline', top_wait: 'Data for this period is still accumulating', size_profit: 'Profit', size_cap: 'Cap', note_up: 'top 9 by price growth over the period: the bigger the percent, the bigger the bubble', note_down: 'top 9 by price decline over the period: the bigger the percent, the bigger the bubble',  note_cap: 'top 9 by market cap: bubble size = market cap, percent = price change', note_top: 'top 9 models by price change over the period: the bigger the percent, the bigger the bubble', map_note: 'size = market cap, color = price change over the period', back: 'Back', up: 'Up',
+  en: { nav_gifts: 'Gifts', nav_themes: 'Sets', nav_map: 'Bubbles', nav_cap: 'Cap', title_map: 'Bubbles', pcs: 'pcs', dn_msg: 'Message (up to 50 characters)', dn_history: 'Donation history', dn_total: 'Total', dn_none: 'No donations yet. Be the first!', retry: 'Retry', app_tag: 'Everything about Telegram Gifts in one app', b_price: 'Price', b_change: 'Growth', b_rarity: 'Rarity', b_qty: 'Supply', model_price: 'Model price', hub4_gifts: 'Gifts', hub4_pmodels: 'Models', hub4_map: 'Bubbles', hub4_themes: 'Sets', mine_bd: 'incl. backdrop', hf_pick_gift: 'Pick a gift', pf_sum: 'Total', pf_add_more: 'Add more', tg_gifts: 'Collections', tg_models: 'Models', pf_mine: 'My gifts', mine_tg: 'The gift list is available in the app inside Telegram.', mine_empty: 'No gifts found. They must be shown on your Telegram profile, and you must have opened the bot.', mine_total: 'Value of my gifts', mine_rest: '{n} more on your profile: regular gifts that are not upgraded, not counted.', hub_pmodels: 'Models', hub_backdrops: 'Backdrops', pm_exp: 'Expensive', pm_cheap: 'Cheap', pm_note: 'Top 100 by price. Search by name to find a model.', nothing: 'Nothing found', bd_rare: 'Rare', bd_common: 'Common', bd_note: 'Gift backdrops: the lower the percent, the rarer the backdrop (average over collections).', bd_g: 'coll.', auth_t: 'Open the app inside Telegram', auth_b: 'Open the bot', pf_favs: 'Favorites', sh_port: 'My portfolio', sh_mine: 'My gifts', sh_mine_h: 'My gifts in Gift Hub:', sh_models: 'My models', sh_gifts: 'My gifts', sh_sets: 'My sets', sh_app: 'The app', sh_note: 'Sent as text with a link to the bot.', sh_head: '', sh_port_h: 'My portfolio in Gift Hub:', sh_models_h: 'My favorite models in Gift Hub:', sh_gifts_h: 'My favorite gifts in Gift Hub:', sh_sets_h: 'My favorite sets in Gift Hub:', tl_donate: 'Support the project', tl_share: 'Tell your friends', pf_guest: 'Guest', pf_positions: 'Items', pf_value: 'Value', pf_port: 'Portfolio', pf_alerts: 'Alerts', pf_donate: 'Donate', pf_f_gift: 'Gifts', pf_f_model: 'Models', pf_f_set: 'Sets', pf_fav_empty: 'Nothing here yet. Tap the star on a gift, model or set.', pf_total: 'Portfolio value', pf_add: 'Add', pf_port_empty: 'Add your gifts and I will calculate their value.', pf_qty: 'Quantity', pf_save: 'Save', pf_whole: 'Whole gift (floor price)', pf_al_note: 'The bot will message you when the condition is met. Checked every few minutes.', pf_al_tg: 'Alerts only work in the app inside Telegram.', pf_al_add: 'New alert', pf_al_empty: 'No alerts yet.', pf_al_val: 'Value (GRAM or %)', pf_c_below: 'Price below', pf_c_above: 'Price above', pf_c_change: 'Daily change over', dn_title: 'Support the project', dn_text: 'Gifts is free. If it is useful, you can support its development with any amount.', dn_stars: 'Telegram Stars', dn_amount: 'Amount in Stars', dn_send: 'Send Stars', dn_crypto: 'GRAM and USDT (TON network)', dn_addr: 'Wallet address', dn_copy: 'Copy address', dn_copied: 'Copied', dn_gram: 'Send GRAM', dn_usdt: 'Send USDT', dn_note: 'GRAM is TON. Send USDT only on the TON network.', dn_thanks: 'Thank you for your support!',  hub_gifts: 'Gifts', hub_map: 'Bubbles', hub_themes: 'Sets', nav_profile: 'Profile', share_t: 'Share',  search_set: 'Search sets', f_gift: 'All gifts', f_model: 'All models', lots: 'Cheapest listings', no_lots: 'no listings', live_wait: 'Looking for live listings…', buy_note_live: 'Prices and listings are real offers right now (refreshed every few minutes). Tap a listing to open the gift.', models_tab: 'Models', grp_all: 'All', grp_pets: 'Pets', grp_gems: 'Color', grp_status: 'Status', grp_other: 'Other', buy: 'Buy', buy_title: 'Where to buy', buy_on: 'Buy on', best: 'best price', no_price: 'price on the market', buy_note: 'Prices are the gift (collection) floor on each market, cheapest first. A specific model may cost differently.', mode_map: 'Gifts', mode_top: 'Models', dir_up: 'Growth', dir_down: 'Decline', top_wait: 'Data for this period is still accumulating', size_profit: 'Profit', size_cap: 'Cap', note_up: 'top 9 by price growth over the period: the bigger the percent, the bigger the bubble', note_down: 'top 9 by price decline over the period: the bigger the percent, the bigger the bubble',  note_cap: 'top 9 by market cap: bubble size = market cap, percent = price change', note_top: 'top 9 models by price change over the period: the bigger the percent, the bigger the bubble', map_note: 'size = market cap, color = price change over the period', back: 'Back', up: 'Up',
     title_gifts: 'Gifts', title_themes: 'Sets', title_cap: 'Market cap',
     search_gift: 'Search gifts', search_model: 'Search models',
     sort_price: 'Price', sort_cap: 'Cap', sort_supply: 'Supply', sort_chg: 'Growth', sort_rarity: 'Rarity',
@@ -390,7 +396,13 @@ const STAR = '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.5 6 .8-4.4 4.2 1.1
 const favAttr = f => `data-k="${esc(f.kind)}" data-g="${esc(f.gift)}" data-m="${esc(f.model || '')}"`;
 const topbar = (title, icon, fav) => `<div class="top">${icon ? `<img class="hico" src="${icon}" alt="" onerror="this.style.display='none'"><h1 class="gt">${title}</h1>` : `<h1>${title}</h1>`}${fav ? `<button class="shr rp fav ${U.isFav(fav.kind, fav.gift, fav.model) ? 'on' : ''}" id="fav" ${favAttr(fav)} aria-label="Favorite">${STAR}</button>` : ''}<button class="shr rp" id="share" aria-label="Share"><img src="/m/share.png" alt=""></button><div class="lang rp" id="lang"><span class="${LANG === 'ru' ? 'on' : ''}">RU</span><span class="${LANG === 'en' ? 'on' : ''}">EN</span></div></div>`;
 // API отвечает только внутри Telegram: к каждому запросу прикладываем подписанные данные открытия (initData)
-const api = p => fetch('/api' + p, { headers: tg?.initData ? { 'X-Init-Data': tg.initData } : {} }).then(r => {
+const apiCache = new Map();
+const apiC = p => {  // запросы страницы коллекции с кэшем: возвращаясь и листая соседние, данные берутся мгновенно
+  if (!apiCache.has(p)) { const r = api(p); r.catch(() => apiCache.delete(p)); apiCache.set(p, r); if (apiCache.size > 160) apiCache.delete(apiCache.keys().next().value); setTimeout(() => apiCache.delete(p), 120000); }
+  return apiCache.get(p);
+};
+const api = (p, retry = 2) => fetch('/api' + p, { headers: tg?.initData ? { 'X-Init-Data': tg.initData } : {} }).then(async r => {
+  if (r.status === 429 && retry > 0) { await new Promise(res => setTimeout(res, 400)); return api(p, retry - 1); }  // слишком частые запросы: подождать и повторить
   if (r.status === 401) { authWall(); throw new Error(401); }
   if (!r.ok) throw new Error(r.status); return r.json();
 });
@@ -399,12 +411,25 @@ function authWall() {
   document.body.insertAdjacentHTML('beforeend', `<div id="wall"><div class="wall-b"><div class="wall-t">${T('auth_t')}</div><a class="buy" href="https://t.me/gift20bot">${T('auth_b')}</a></div></div>`);
 }
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtKB = n => n == null ? '—' : n >= 1e6 ? (+(n / 1e6).toFixed(1)) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(Math.round(n));  // 621K, 2.4M
+const USDT = '<svg class="gem usdt" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#26a17b"/><path fill="#fff" d="M13.2 12.3v-1.4h3.2V8.7H7.6v2.2h3.2v1.4c-2.6.1-4.5.6-4.5 1.2s1.9 1.1 4.5 1.2v4.5h2.4v-4.5c2.6-.1 4.5-.6 4.5-1.2s-1.9-1.1-4.5-1.2zm0 2c-.1 0-.7 0-1.2 0s-1.1 0-1.2 0c-2.1-.1-3.7-.4-3.7-.8s1.6-.7 3.7-.8v1.4c.1 0 .7.1 1.2.1s1.1 0 1.2-.1v-1.4c2.1.1 3.7.4 3.7.8s-1.6.7-3.7.8z"/></svg>';
+let priceCur = 'gram', tonUsd = null;  // валюта блока «Цена»: gram или usd (нажатие на блок переключает)
+const priceHtml = ton => ton == null ? '—' : priceCur === 'usd' && tonUsd ? fmtB(ton * tonUsd) + USDT : fmtB(ton) + GEM;
+const capHtml = ton => ton == null ? '—' : priceCur === 'usd' && tonUsd ? fmtKB(ton * tonUsd) + USDT : fmtKB(ton) + GEM;  // капа: 2.4M со значком валюты
+function repaintPrices() { document.querySelectorAll('[data-pton]').forEach(el => { el.innerHTML = el.dataset.pton === '' ? '—' : el.dataset.cap ? capHtml(+el.dataset.pton) : priceHtml(+el.dataset.pton); }); }
+function togglePrice() {
+  if (!tonUsd) return;
+  priceCur = priceCur === 'gram' ? 'usd' : 'gram'; hap(); repaintPrices(); try { localStorage.setItem('priceCur', priceCur); } catch (er) {}
+}
+document.addEventListener('click', e => { if (e.target.closest('.gst[data-price]')) togglePrice(); });
+try { priceCur = localStorage.getItem('priceCur') === 'usd' ? 'usd' : 'gram'; } catch (e) {}
+const fmtB = n => n == null ? '—' : n >= 100 ? Math.round(n).toLocaleString(LOC()).replace(/ /g, ' ') : String(Math.floor(n * 10) / 10);  // цена в блоке: не больше одного знака после запятой, чтобы число влезало
 const fmt = n => n == null ? '—' : n >= 1000 ? Math.round(n).toLocaleString(LOC()) : (+n.toFixed(2)).toString();
 const fmtK = n => n == null ? '—' : n >= 1e6 ? (n/1e6).toFixed(1) + 'M' : n >= 1e3 ? (n/1e3).toFixed(1) + 'K' : fmt(n);
 const fmtS = n => n == null ? '—' : Math.round(n).toLocaleString(LOC()).replace(/\u00a0/g, ' ');  // тираж целиком: 200 000
-const FOOT = '<footer>Powered by <a href="https://t.me/GiftChanges">@GiftChanges</a> (api.changes.tg)</footer>';
+const FOOT = '<footer><a href="https://t.me/GiftChanges">@GiftChanges</a> храни вас Господь!</footer>';
 const short = n => n.toLowerCase().replace(/[^a-z ]/g, '').trim().split(/\s+/).join('_');
-const img = n => `/img/g/${short(n)}.webp`;
+const img = n => `/img/g/${short(n)}.webp?v=3`;  // v=2: картинки подарков обновлены, старые из кеша телефона не подходят
 const img_ = img;
 // файл модели в датасете: нижний регистр, пробелы -> «_», остальные символы сохраняются; g и m — запасной источник
 const mimg = (g, m, full) => `/img/m/${short(g)}/${encodeURIComponent(m.toLowerCase().replace(/ /g, '_'))}.webp?g=${encodeURIComponent(g)}&m=${encodeURIComponent(m)}${full ? '&full=1' : ''}`;
@@ -436,11 +461,11 @@ const spark = (arr, up) => {
   return `<svg class="sp" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>` +
     `<path d="${d}L${w},${h}L0,${h}Z" fill="url(#${id})"/><path d="${d}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 };
-const chg = p => {
+const chg = (p, dg = 2) => {
   if (p == null) return '<span class="fl">—</span>';
   const cls = p > 0 ? 'up' : p < 0 ? 'dn' : 'fl';
   const arrow = p === 0 ? '' : `<svg viewBox="0 0 24 24" style="transform:rotate(${p > 0 ? 0 : 180}deg)"><path d="M12 4l9 12H3z"/></svg>`;
-  return `<span class="${cls} chg">${arrow}${Math.abs(p).toFixed(2)}%</span>`;
+  return `<span class="${cls} chg">${arrow}${Math.abs(p).toFixed(dg)}%</span>`;
 };
 const arrowBtn = (on, dir) => on ? `<svg class="arr ${dir === 1 ? '' : 'down'}" viewBox="0 0 24 24"><path d="M12 20V5M5.5 11.5L12 5l6.5 6.5"/></svg>` : '';
 const sortRows = (rows, field, dir) => rows.slice().sort((a, b) => {  // без значения всегда внизу
@@ -523,7 +548,7 @@ async function showGifts() {
   const id = mount(`<div>${topbar(T('title_gifts'))}<input class="search" placeholder="${T('search_gift')}" id="q">${hubSeg('gifts')}
     <div class="seg" id="sort"><button class="rp" data-v="chg">Рост</button><button class="rp" data-v="price">Цена</button><button class="rp" data-v="supply">Тираж</button></div>
     <div class="seg seg-s" id="gper">${PERIODS.map(k => `<button class="rp" data-v="${k}">${T('p_' + k)}</button>`).join('')}</div>
-    <div id="list"></div></div>`);
+    <div id="list"></div>${FOOT}</div>`);
   bindHub();
   giftsCache ||= await api('/gifts');
   if (id !== viewId) return;
@@ -578,8 +603,8 @@ let gcDays = 30;  // по умолчанию график за 1м
 function giftHead(gift) {
   const g = giftsCache?.find(x => x.name === gift);
   const qty = g ? (g.upgraded ? fmtS(g.upgraded) : g.supply != null ? fmtS(g.supply) : '—') : '—';
-  const blocks = g ? `<div class="gstats"><div class="gst"><span>${T('b_price')}</span><b>${fmt(g.floor_ton)}${GEM}</b></div><div class="gst"><span>${T('b_change')}</span><b id="gchg">${chg(giftChange(g))}</b></div>
-    <div class="gst"><span>${T('supply')}</span><b>${qty}</b></div><div class="gst"><span>${T('cap_w')}</span><b>${g.cap_ton != null ? fmtK(g.cap_ton) + GEM : '—'}</b></div></div>` : '';
+  const blocks = g ? `<div class="gstats"><div class="gst" data-price="1"><span>${T('b_price')}</span><b data-pton="${g.floor_ton ?? ''}">${priceHtml(g.floor_ton)}</b></div><div class="gst"><span>${T('b_change')}</span><b id="gchg">${chg(giftChange(g), 1)}</b></div>
+    <div class="gst"><span>${T('supply')}</span><b>${qty}</b></div><div class="gst" data-price="1"><span>${T('cap_w')}</span><b data-pton="${g.cap_ton ?? ''}" data-cap="1">${capHtml(g.cap_ton)}</b></div></div>` : '';
   return `<div class="ghero"><div class="ghrow"><button class="lbn" id="gprev" aria-label="prev"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><img src="${img_(gift)}" alt="" onerror="this.style.display='none'"><button class="lbn" id="gnext" aria-label="next"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button></div><div class="gtitle">${esc(gift)}</div></div>${blocks}
     <div class="gcard"><div id="gchart"><div class="empty" style="padding:30px">${T('loading')}</div></div>
     <div class="seg seg-s" id="gper2" style="margin:10px 0 0">${perBtns()}</div></div><div class="lbrow"><button class="buy rp" id="buy-gift">${T('buy')}</button><button class="favb rp ${U.isFav('gift', gift) ? 'on' : ''}" id="fav" ${favAttr({ kind: 'gift', gift })} aria-label="Favorite">${STAR}</button></div>`;
@@ -588,13 +613,13 @@ async function drawGiftChart(gift) {
   const id = viewId, box = $('#gchart');
   document.querySelectorAll('#gper2 button').forEach(b => b.classList.toggle('on', +b.dataset.v === gcDays));
   let h;
-  try { h = await api('/gifts/' + encodeURIComponent(gift) + '/history?days=' + Math.ceil(gcDays)); }
+  try { h = await apiC('/gifts/' + encodeURIComponent(gift) + '/history?days=' + Math.ceil(gcDays)); }
   catch (e) { if (id === viewId) box.innerHTML = '<div class="empty" style="padding:30px">' + T('chart_fail') + '</div>'; return; }
   if (id !== viewId) return;
   const fl = cropHour(h.floors.map(p => ({ t: p.ts, v: p.price_ton })), gcDays), sl = cropHour(h.sales.map(p => ({ t: p.ts, v: p.price_ton })), gcDays);
   const cur = h.now ? { t: h.now.ts, v: h.now.price_ton } : null;
   { const c = $('#gchg'), base = fl.length > 1 ? fl[0].v : null, nowP = cur ? cur.v : (fl.length ? fl[fl.length - 1].v : null);
-    if (c) c.innerHTML = base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2)) : '—'; }
+    if (c) c.innerHTML = base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2), 1) : '—'; }
   box.innerHTML = fl.concat(sl, cur ? [cur] : []).length < 2 ? '<div class="empty" style="padding:30px">' + T('chart_few') + '</div>'
     : chartSvg(fl, sl, chartH(), cur);
 }
@@ -666,7 +691,9 @@ function modelsView(rows, gift, subFn, title, withFilters, fav) {
   view.scrollTo({ top: rs ? rs.scroll : 0, behavior: 'instant' });
 }
 async function showModels(gift) {
-  const id = viewId, models = await api('/gifts/' + encodeURIComponent(gift) + '/models');
+  const id = viewId, models = await apiC('/gifts/' + encodeURIComponent(gift) + '/models');
+  clearTimeout(window.__nbTimer);
+  window.__nbTimer = setTimeout(() => { const nb = giftNeighbors(gift); [nb.prev, nb.next].forEach(g => { if (g) { apiC('/gifts/' + encodeURIComponent(g) + '/models').catch(() => {}); apiC('/gifts/' + encodeURIComponent(g) + '/history?days=' + Math.ceil(gcDays)).catch(() => {}); const im = new Image(); im.src = img_(g); } }); }, 700);  // заранее грузим соседние коллекции
   if (id !== viewId) return;
   modelsView(models, gift, rarityTxt, gift);
 }
@@ -966,11 +993,11 @@ function showLb(idx, dir) {
   const body = $('#lb-body'), im = $('#lb-img');
   body.classList.remove('sl', 'sr'); void body.offsetWidth;  // перезапуск анимации сдвига
   if (dir) body.classList.add(dir > 0 ? 'sl' : 'sr');
-  im.style.visibility = 'visible'; im.removeAttribute('src');
+  im.style.visibility = 'visible';
   im.src = mimg(gift, m.name, true);
   $('#lb-t').textContent = gift + ' · ' + m.name;
   const qn = modelQty(gift, m);
-  $('#lb-s').innerHTML = `<div class="gstats"><div class="gst"><span>${T('b_price')}</span><b id="lb-price">${fmt(m.floor_ton)}${GEM}</b></div><div class="gst"><span>${T('b_change')}</span><b id="lb-chg">—</b></div>
+  $('#lb-s').innerHTML = `<div class="gstats"><div class="gst" data-price="1"><span>${T('b_price')}</span><b id="lb-price" data-pton="${m.floor_ton ?? ''}">${priceHtml(m.floor_ton)}</b></div><div class="gst"><span>${T('b_change')}</span><b id="lb-chg">—</b></div>
     <div class="gst"><span>${T('b_rarity')}</span><b>${m.rarity_permille != null ? +(m.rarity_permille / 10).toFixed(1) + '%' : '—'}</b></div><div class="gst"><span>${T('b_qty')}</span><b>${qn != null ? fmtS(qn) : '—'}</b></div></div>`;
   const many = lbList.length > 1;
   $('#lb-pos').textContent = many ? `${idx + 1} / ${lbList.length}` : '';
@@ -984,12 +1011,12 @@ function lbStep(d) {
   const n = (lbIdx + d + lbList.length) % lbList.length;  // по кругу: после последней модели снова первая
   hap('light'); showLb(n, d);
 }
-const lbHistCache = new Map();
+const lbHistCache = new Map(), lbHistReady = new Set();
 const lbHistory = (gift, name, days) => {  // история модели с кэшем: повторные открытия и соседние модели грузятся мгновенно
   const k = gift + '|' + name + '|' + days;
   if (!lbHistCache.has(k)) {
     const p = api(`/gifts/${encodeURIComponent(gift)}/models/${encodeURIComponent(name)}/history?days=${days}`);
-    p.catch(() => lbHistCache.delete(k));
+    p.then(() => lbHistReady.add(k), () => { lbHistCache.delete(k); lbHistReady.delete(k); });
     lbHistCache.set(k, p);
     if (lbHistCache.size > 120) lbHistCache.delete(lbHistCache.keys().next().value);
   }
@@ -1005,16 +1032,17 @@ function lbPrefetch(idx) {  // заранее грузим картинки и �
 async function drawLb() {
   const { gift, m } = lbState, box = $('#lb-chart');
   document.querySelectorAll('#lb-per button').forEach(b => b.classList.toggle('on', +b.dataset.v === lbDays));
-  box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('loading') + '</div>';
+  if (!lbHistReady.has(gift + '|' + m.name + '|' + Math.ceil(lbDays))) { box.style.opacity = '.35'; }  // данных ещё нет: прошлый график чуть притухает вместо текста «Загрузка»
   { const c = $('#lb-chg'); if (c) c.innerHTML = '—'; const pr = $('#lb-price'); if (pr) pr.classList.remove('pgn', 'pls'); }
   let h;
   try { h = await lbHistory(gift, m.name, Math.ceil(lbDays)); }
   catch (e) { if (lbState.m === m) box.innerHTML = '<div class="s" style="padding:24px;color:var(--mute)">' + T('chart_fail') + '</div>'; return; }
   if (lbState.m !== m) return;  // пока грузилось, переключились на другую модель
+  box.style.opacity = '';
   const fl = cropHour(h.floors.map(p => ({ t: p.ts, v: p.price_ton })), lbDays), sl = cropHour(h.sales.map(p => ({ t: p.ts, v: p.price_ton })), lbDays);
   { // изменение цены за выбранный период (по снимкам цены): первая точка периода против текущей цены
     const c = $('#lb-chg'), base = fl.length > 1 ? fl[0].v : null, nowP = m.floor_ton ?? (fl.length ? fl[fl.length - 1].v : null);
-    if (c) c.innerHTML = base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2)) : '—';
+    if (c) c.innerHTML = base && nowP != null ? chg(+((nowP / base - 1) * 100).toFixed(2), 1) : '—';
     const pr = $('#lb-price'), pct = base && nowP != null ? (nowP / base - 1) * 100 : 0;  // цена зелёная, если выросла за период, красная, если упала
     if (pr) { pr.classList.toggle('pgn', pct > 0); pr.classList.toggle('pls', pct < 0); }
   }
@@ -1050,7 +1078,7 @@ function chartSvg(fl, sl, H, cur) {
   const gid = 'cg' + Math.random().toString(36).slice(2, 7);
   const area = pts.length > 1 ? `<path d="${line}L${x(pts[pts.length - 1].t).toFixed(1)},${H - B}L${x(pts[0].t).toFixed(1)},${H - B}Z" fill="url(#${gid})"/>` : '';
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".16"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs>${xt}${grid}${area}` +
-    `${pts.length > 1 ? `<path d="${line}" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 8px rgba(255,255,255,.65))"/>` : ''}${dots}${now}</svg>`;
+    `${pts.length > 1 ? `<path d="${line}" fill="none" stroke="rgba(255,255,255,.13)" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><path d="${line}" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>` : ''}${dots}${now}</svg>`;
 }
 document.querySelectorAll('#lb-per button').forEach(b => b.onclick = e => { e.stopPropagation(); lbDays = +b.dataset.v; drawLb(); });
 $('#lb-prev').onclick = e => { e.stopPropagation(); lbStep(-1); };
@@ -1060,14 +1088,17 @@ $('#lb-close').onclick = () => $('#lb').classList.remove('show');
 $('#lb-fav').onclick = e => { e.stopPropagation(); U.toggle('model', lbState.gift, lbState.m.name); };
 $('#lb-buy').onclick = e => { e.stopPropagation(); openBuy(lbState.gift, lbState.m.name, lbState.m.floor_ton); };
 // нажатие на картинку, название и пустое место карточки ничего не делает: закрывает только кнопка «Назад»
-$('#lb').onclick = e => { e.stopPropagation(); };
+$('#lb').onclick = e => { if (e.target.closest('.gst[data-price]')) togglePrice(); e.stopPropagation(); };
 // страница подарка: листание коллекций (свайп или стрелки) в том порядке, как они стояли в списке
 const giftNeighbors = g => {  // по кругу: после последней коллекции снова первая
   const order = giftOrder.includes(g) && giftOrder.length > 1 ? giftOrder : sortBy(giftsCache || [], GSORT[giftSort.key], giftSort.dir).map(x => x.name), i = order.indexOf(g), n = order.length;
   return i < 0 || n < 2 ? { prev: null, next: null } : { prev: order[(i - 1 + n) % n], next: order[(i + 1) % n] };
 };
+let lastGiftStep = 0;
 function stepGift(dir) {
   if (cur.name !== 'models' || !cur.arg) return;
+  if (Date.now() - lastGiftStep < 300) return;  // слишком быстрые свайпы пропускаем, чтобы не засыпать сервер запросами
+  lastGiftStep = Date.now();
   const nb = giftNeighbors(cur.arg), nxt = dir > 0 ? nb.next : nb.prev;
   if (!nxt) return;
   hap('light'); cur = { name: 'models', arg: nxt }; restoreState = null; view.scrollTop = 0; routes.models(nxt);
@@ -1087,7 +1118,7 @@ $('#lb').addEventListener('touchstart', e => { const t = e.touches[0]; swipe = {
 $('#lb').addEventListener('touchend', e => {
   if (!swipe) return;
   const t = e.changedTouches[0], dx = t.clientX - swipe.x, dy = t.clientY - swipe.y; swipe = null;
-  if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) lbStep(dx < 0 ? 1 : -1);
+  if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) lbStep(dx < 0 ? 1 : -1);
 }, { passive: true });
 document.addEventListener('keydown', e => {
   if (!$('#lb').classList.contains('show')) return;
@@ -1295,7 +1326,7 @@ async function drawMine(body, id, quiet) {
   }).sort((a, b) => (b.price || 0) - (a.price || 0));
   const total = rows.reduce((a, x) => a + (x.price || 0), 0);
   if (!rows.length) { body.innerHTML = `<div class="empty">${T('mine_empty')}</div>`; return; }
-  body.innerHTML = `<div class="pcard pcmini"><div class="gprice">${fmt(total)} GRAM</div><div class="pcnt">${rows.length}</div></div><div id="mine-list"></div>`;
+  body.innerHTML = `<div class="pcard pcmini"><div class="pcnt">${rows.length}</div><div class="gprice">${fmt(total)} GRAM</div></div><div id="mine-list"></div>`;
   const box = $('#mine-list');
   renderList(box, rows, (x, i, anim) => `<div class="row rp ${anim ? 'anim' : ''}" data-u="${esc(x.slug ? 'https://t.me/nft/' + x.slug : '')}" ${stagger(i)}><div class="nftimg" style="--c1:${esc(x.c1 || '#222')};--c2:${esc(x.c2 || '#111')}">${imgTag(mimg(x.gift, x.model || ''))}</div><div class="t"><div class="n">${esc(x.model || x.gift)}${x.model_r != null ? ' <span class="no">' + x.model_r / 10 + '%</span>' : ''}</div><div class="s">${esc(x.gift)} <span class="no">#${x.number}</span></div></div><div class="p">${fmt(x.price)}${GEM}</div></div>`, true);
   
@@ -1433,27 +1464,40 @@ async function drawAlerts(body, id) {
   };
 }
 
+const DKIND = { stars: 'Stars', ton: 'GRAM', usdt: 'USDT' };
+async function drawDonHistory(body) {
+  body.innerHTML = `<div class="dn-hh"><button class="hf-back rp" id="dn-back" aria-label="back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><b>${T('dn_history')}</b></div><div id="dn-list" class="dn-list"><div class="empty">${T('loading')}</div></div>`;
+  $('#dn-back').onclick = () => { hap(); drawDonate(body); };
+  let d; try { d = await api('/donations?limit=100'); } catch (e) { $('#dn-list').innerHTML = `<div class="empty">${T('chart_fail')}</div>`; return; }
+  const fm = ts => new Date(ts * 1000).toLocaleDateString(LOC(), { day: 'numeric', month: 'short' }) + ' ' + new Date(ts * 1000).toLocaleTimeString(LOC(), { hour: '2-digit', minute: '2-digit' });
+  const tot = Object.entries(d.totals || {}).map(([k, v]) => `${+v.sum.toFixed(2)} ${DKIND[k] || k}`).join(' · ');
+  $('#dn-list').innerHTML = (tot ? `<div class="dn-tot">${T('dn_total')}: <b>${tot}</b></div>` : '') +
+    (d.items.length ? d.items.map(x => `<div class="dn-it"><span class="dn-w">${esc(x.who)}</span><span class="dn-d">${fm(x.ts)}${x.msg ? ' · ' + esc(x.msg) : ''}</span><b>${+x.amount.toFixed(2)} ${DKIND[x.kind] || x.kind}</b></div>`).join('') : `<div class="empty">${T('dn_none')}</div>`);
+}
 function drawDonate(body) {
   const amts = [50, 100, 250, 500, 1000];
   body.innerHTML = `<div class="dn-t">${T('dn_text')}</div>
     <div class="seg seg-s" id="dn-amts">${amts.map(a => `<button class="rp" data-v="${a}">${a}</button>`).join('')}</div>
+    <input id="dn-msg" class="dn-msg" maxlength="50" placeholder="${T('dn_msg')}" autocomplete="off">
     <div class="dn-row"><input id="dn-v" type="number" inputmode="numeric" min="1" max="10000" step="1" value="100" placeholder="${T('dn_amount')}"><button class="buy rp" id="dn-go">${T('dn_send')}</button></div>
     <div class="dn-sep">${T('dn_crypto')}</div>
     <div class="dn-addr"><div class="addr" id="dn-addr">${WALLET}</div><button class="rp cpy" id="dn-copy">${T('dn_copy')}</button></div>
     <button class="buy rp" id="dn-gram" data-ton="gram">${T('dn_gram')}</button>
+    <button class="rp dn-hist" id="dn-hist">${T('dn_history')}</button>
     <div class="sh-note" style="margin-top:8px">${T('dn_note')}</div>`;
+  $('#dn-hist').onclick = () => { hap(); drawDonHistory(body); };
   document.querySelectorAll('#dn-amts button').forEach(b => b.onclick = () => { $('#dn-v').value = b.dataset.v; hap(); });
   $('#dn-go').onclick = async () => {
     const n = Math.round(+$('#dn-v').value); if (!(n >= 1 && n <= 10000)) return; hap();
     try {
-      const r = await fetch('/api/donate/stars', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Init-Data': tg?.initData || '' }, body: JSON.stringify({ amount: n }) }).then(r => r.json());
+      const r = await fetch('/api/donate/stars', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Init-Data': tg?.initData || '' }, body: JSON.stringify({ amount: n, message: ($('#dn-msg').value || '').trim().slice(0, 50) }) }).then(r => r.json());
       if (r.link && tg?.openInvoice) tg.openInvoice(r.link, st => { if (st === 'paid') { hapOk(); try { tg.showAlert(T('dn_thanks')); } catch (e) {} } });
       else if (r.link) window.open(r.link, '_blank');
     } catch (e) {}
   };
   $('#dn-copy').onclick = async () => { hap(); try { await navigator.clipboard.writeText(WALLET); $('#dn-copy').textContent = T('dn_copied'); setTimeout(() => $('#dn-copy') && ($('#dn-copy').textContent = T('dn_copy')), 1500); } catch (e) {} };
   body.onclick = e => { const b = e.target.closest('[data-ton]'); if (!b) return; hap();
-    const url = 'ton://transfer/' + WALLET;
+    const cm = ($('#dn-msg').value || '').trim().slice(0, 50), url = 'ton://transfer/' + WALLET + (cm ? '?text=' + encodeURIComponent(cm) : '');
     try { window.open(url, '_blank'); } catch (err) { location.href = url; } };
 }
 
@@ -1516,6 +1560,7 @@ loadPrefs();
 try { const c = JSON.parse(localStorage.getItem('gc') || 'null'); if (c && Date.now() - c.t < 12 * 3600e3 && Array.isArray(c.v)) giftsCache = c.v; } catch (e) {}
 applyStaticLang();
 showGifts();
+api('/marketcap?days=1').then(d => { tonUsd = d.ton_usd || null; repaintPrices(); }).catch(() => {});
 // один раз при открытии: свежие данные запоминаем для следующего запуска (экран на глазах не перерисовывается); заодно разогреваем цены «Моих гифтов»
 api('/gifts').then(v => {
   try { localStorage.setItem('gc', JSON.stringify({ t: Date.now(), v })); } catch (e) {}

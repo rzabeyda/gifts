@@ -131,6 +131,14 @@ CREATE TABLE IF NOT EXISTS bd_prices (
     price REAL, ts INTEGER NOT NULL,
     PRIMARY KEY (gift, model, backdrop)
 );
+-- история донатов: Stars (из бота) и переводы GRAM/USDT на кошелёк (из tonapi)
+CREATE TABLE IF NOT EXISTS donations (
+    id TEXT PRIMARY KEY,
+    ts INTEGER NOT NULL,
+    kind TEXT NOT NULL,          -- stars | ton | usdt
+    who TEXT NOT NULL,           -- @username / имя / короткий адрес кошелька
+    amount REAL NOT NULL
+);
 -- курс TON/GRAM к USD
 CREATE TABLE IF NOT EXISTS rates (
     ts INTEGER PRIMARY KEY,
@@ -153,6 +161,10 @@ async def connect():
 async def init() -> None:
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(SCHEMA)
+        try:  # короткое сообщение к донату (добавлено позже)
+            await db.execute("ALTER TABLE donations ADD COLUMN msg TEXT")
+        except Exception:
+            pass
         try:  # язык пользователя для уведомлений (добавлено позже)
             await db.execute("ALTER TABLE users ADD COLUMN lang TEXT")
         except Exception:

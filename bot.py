@@ -87,6 +87,16 @@ async def pre_checkout(q: PreCheckoutQuery):
 
 @dp.message(F.successful_payment)
 async def paid(m: Message):
+    sp = m.successful_payment
+    try:  # записываем донат в историю
+        who = f"@{m.from_user.username}" if m.from_user.username else (m.from_user.full_name or "аноним")
+        con = sqlite3.connect(DB_PATH, timeout=10)
+        msg = (sp.invoice_payload[2:] if (sp.invoice_payload or "").startswith("d:") else "")[:50] or None
+        con.execute("INSERT OR IGNORE INTO donations (id, ts, kind, who, amount, msg) VALUES (?,?,?,?,?,?)", (f"stars:{sp.telegram_payment_charge_id}", int(time.time()), "stars", who, float(sp.total_amount), msg))
+        con.commit(); con.close()
+        await m.bot.send_message(OWNER_ID, f"Донат {sp.total_amount} Stars от {who}" + (chr(10) + msg if msg else ""))
+    except Exception:
+        pass
     await m.answer("Спасибо за поддержку! / Thank you for your support!")
 
 

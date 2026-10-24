@@ -52,6 +52,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(collectors.run_forever(collectors.collect_marketcap_estimate, 60, "marketcap-est")),
         asyncio.create_task(collectors.run_forever(collectors.collect_floors, 300, "floors")),
         asyncio.create_task(collectors.run_forever(collectors.collect_peek, 900, "peek")),
+        asyncio.create_task(collectors.run_forever(collectors.collect_donations, 600, "donations")),
         asyncio.create_task(collectors.run_forever(collectors.collect_peek_models, 3 * 3600, "peek-models")),
         asyncio.create_task(collectors.run_forever(collectors.collect_issued, 12 * 3600, "issued")),
         asyncio.create_task(collectors.run_forever(collectors.collect_sales, 30, "sales")),
@@ -296,7 +297,8 @@ async def serve_image(kind: str, a: str, b: str, full: bool, names: tuple[str, s
 
 @app.get("/img/g/{a}.webp")
 async def img_gift(a: str, full: int = 0):
-    return await serve_image("g", a, "", bool(full))
+    real = next((r["name"] for r in await q("SELECT name FROM gifts") if images.short(r["name"]) == a), None)  # настоящее название для каталога
+    return await serve_image("g", a, "", bool(full), (real, "") if real else None)
 
 
 @app.get("/img/m/{a}/{b}.webp")
@@ -567,7 +569,8 @@ _mine_cache: dict = {}
 # Цена с учётом фона: самый дешёвый лот той же модели и с тем же фоном (открытый поиск peek.tg; редко, с общей очередью и паузами)
 _bd_price: dict = {}          # (подарок, модель, фон) -> (время, цена или None, если лотов нет)
 _bd_state = {"running": False, "cool": 0.0}
-BD_TTL = 3 * 3600
+BD_TTL = 3 * 3600          # после этого срока цену по фону обновляем
+BD_STALE = 5 * 86400       # но пока новая не пришла (или источник закрыт), показываем последнюю известную, а не флор модели
 
 
 async def fill_bd_prices(keys: list):
@@ -645,13 +648,13 @@ async def api_my_gifts(request: Request):
     now_t = time.time()
     if not _bd_state.get("loaded"):  # после перезапуска сервера поднимаем сохранённые цены, а не считаем заново
         _bd_state["loaded"] = True
-        for r in await q("SELECT gift, model, backdrop, price, ts FROM bd_prices WHERE ts > ?", (int(now_t - BD_TTL),)):
+        for r in await q("SELECT gift, model, backdrop, price, ts FROM bd_prices WHERE ts > ?", (int(now_t - BD_STALE),)):
             _bd_price.setdefault((r["gift"], r["model"], r["backdrop"]), (r["ts"], r["price"]))
     need = []
     for it in items:
         k = (it["gift"], it["model"], it["backdrop"])
         hit = _bd_price.get(k)
-        it["price_exact"] = hit[1] if hit and now_t - hit[0] < BD_TTL else None
+        it["price_exact"] = hit[1] if hit and now_t - hit[0] < BD_STALE else None
         if (not hit or now_t - hit[0] >= BD_TTL) and it["model"] and it["backdrop"] and k not in need:
             need.append(k)
     if need:
@@ -793,6 +796,14 @@ async def api_share_prepare(body: ShareIn, request: Request):
     return {"id": j["result"]["id"]}
 
 
+@app.get("/api/donations")
+async def api_donations(limit: int = 100):
+    """История донатов: кто, сколько и когда (Stars, GRAM, USDT)."""
+    rows = await q("SELECT ts, kind, who, amount, msg FROM donations ORDER BY ts DESC LIMIT ?", (max(1, min(limit, 300)),))
+    tot = await q("SELECT kind, SUM(amount) AS s, COUNT(*) AS n FROM donations GROUP BY kind")
+    return {"items": rows, "totals": {r["kind"]: {"sum": r["s"], "n": r["n"]} for r in tot}}
+
+
 @app.get("/api/me")
 async def api_me(request: Request):
     uid = await current_user(request)
@@ -913,6 +924,7 @@ async def alerts_loop():
 
 class StarsIn(BaseModel):
     amount: int
+    message: str = ""
 
 
 _donate_state = {"last": 0.0}
@@ -927,9 +939,13 @@ async def api_donate_stars(body: StarsIn):
     if time.time() - _donate_state["last"] < 0.3:  # не чаще ~3 в секунду на всех
         raise HTTPException(429, "slow down")
     _donate_state["last"] = time.time()
+    msg = re.sub(r"[\x00-\x1f\x7f]", " ", body.message or "").strip()[:50]  # короткое сообщение к донату, не больше 50 символов
+    payload = "d:" + msg
+    while len(payload.encode()) > 120:  # лимит Telegram на payload — 128 байт
+        msg = msg[:-1]; payload = "d:" + msg
     async with httpx.AsyncClient(timeout=15) as c:
         r = await c.post(f"https://api.telegram.org/bot{token}/createInvoiceLink", json={
-            "title": "Gift Hub", "description": "Support the project", "payload": "donate",
+            "title": "Gifts", "description": "Support the project", "payload": payload,
             "currency": "XTR", "prices": [{"label": "Donate", "amount": body.amount}]})
     data = r.json()
     if not data.get("ok"):
