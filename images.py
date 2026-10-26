@@ -81,6 +81,8 @@ async def ensure(client: httpx.AsyncClient, kind: str, a: str, b: str, full: boo
         data = await _get(client, tpl.format(a=a, b=quote(b, safe="")))
         if data:
             break
+    if not data and kind == "g" and names:  # в датасете картинки подарка нет (например, Resistance Dog): берём из каталога GiftChanges
+        data = await _get(client, CHANGES_ORIG.format(g=quote(names[0], safe="")))
     if not data and kind == "m" and names:
         data = await _get(client, CHANGES_PNG.format(g=quote(names[0], safe=""), m=quote(names[1], safe="")))
     try:

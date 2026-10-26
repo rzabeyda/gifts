@@ -62,7 +62,6 @@ THEMES = [
     ("pigeons", "Голуби", "pigeon|pigion|dove|columba", []),
     ("sea", "Море", "fish|shark|whale|dolphin|octopus|squid|crab|lobster|jellyfish|seahorse|sea horse|orca|seal|mermaid|goldfish|blobfish|devilfish|kraken|shrimp|salmon|starfish|clam|coral|koi|nemo|penguin|axolotl|piranha|walrus|otter", []),
     ("insects", "Насекомые", "bee|wasp|butterfly|ladybug|ladybird|spider|ant|beetle|moth|firefly|dragonfly|cricket|bug|bumble*|butterflight|butterflies|morpho|fireflies|hive|apiary|scarab|mantis|hornet", []),
-    ("pigs", "Свинки", "pig|piggy|boar|hog", []),
     ("eggs", "Яйца",
      "egg|eggs|eggshell|eggsclusive|eggcellent|eggmoji|egghead|eggsecutive|eggburger|faberge|fabergé|easter|yolk|omelet|omelette",
      ["Easter Egg"]),
@@ -90,15 +89,26 @@ THEMES = [
     ("rose", "Rose", "rose|roses|rosegold|pink|blush|bubblegum|fuchsia|magenta|barbie", []),
     ("diamond", "Diamond", "diamond|diamonds", []),
     ("red", "Red", "red", []),
+    # подарки целиком и тематические сэты в блоке «Статус»
+    ("westside", "Westside Sign", "zzznomatch", ["Westside Sign"]),
+    ("heartlocket", "Heart Locket", "zzznomatch", ["Heart Locket"]),
+    ("astralshard", "Astral Shard", "zzznomatch", ["Astral Shard"]),
+    ("minioscar", "Mini Oscar", "zzznomatch", ["Mini Oscar"]),
+    ("caps", "Кепки", "zzznomatch", ["Durov's Cap"]),
+    ("plums", "Сливы", "zzznomatch", ["Precious Peach"]),
+    ("durov", "Durov", "durov*", ["Durov's Cap", "Durov's Glasses"]),
+    ("media", "Кино и мульты", "mickey|minnie|goofy|homer|garfield|winnie|pooh|joker*|harley|batman|spiderman|spider-man|hulk|deadpool|wolverine|sailor moon|sonic|mario|luigi|bowser|yoshi|pacman|pac-man|puck man|minion|ratatouille|jedi|vader|yoda|hobbit|sauron|dracula|barbie|nemo|shrek|pennywise|freddy|beetlejuice|snoopy|popeye|rambo|terminator|pickle rick|baby kong|robo kong|loki|thor-ny|elsa|skywalker|creeper|woody allen|picasso|einstein|warhol|salvador dali|steve jobs|chaplin|marilyn", []),
+    ("matrix", "Матрица", "matrix|oracle|white rabbit|neo|red pill|blue pill|morpheus|trinity|agent smith", []),
+    ("goth", "Готы", "goth*|emo|vampire*", []),
 ]
 
 # группы-фильтры вверху вкладки «Сэты»; всё, чего здесь нет, попадает в «other»
 GROUPS = {
     "pets": ["pepe", "ducks", "cats", "dogs", "birds", "bears", "bunnies", "monkeys", "snakes", "dragons", "pigeons",
-             "sea", "insects", "pigs"],
-    "gems": ["gold", "gems", "ruby", "amethyst", "emerald", "silver", "sapphire", "topaz", "black",
-             "rose", "diamond", "red", "yellow", "white", "platinum", "orange", "bronze", "brown", "rainbow", "aqua"],
-    "status": ["bags", "rings", "glasses", "cars", "watches", "cigars"],
+             "sea", "insects"],
+    "gems": ["gold", "ruby", "amethyst", "emerald", "silver", "sapphire", "topaz", "black",
+             "rose", "diamond", "red", "yellow", "white", "platinum", "orange", "bronze", "brown", "rainbow", "aqua", "goth"],
+    "status": ["bags", "rings", "glasses", "cars", "watches", "cigars", "westside", "heartlocket", "astralshard", "minioscar", "caps", "plums", "durov", "media", "matrix"],
 }
 GROUP_OF = {tid: g for g, ids in GROUPS.items() for tid in ids}
 # порядок на экране: блоки Питомцы, Статус, Цвет, затем остальное; внутри блока — как перечислено выше
@@ -133,6 +143,7 @@ TITLES_EN = {
     "pigeons": "Pigeons", 
     "sea": "Sea Life", "insects": "Insects", "pigs": "Pigs", "moon": "Moon", "yellow": "Yellow", "white": "White", "platinum": "Platinum", "orange": "Orange", "bronze": "Bronze",
     "brown": "Brown", "rainbow": "Rainbow", "aqua": "Aqua", "glasses": "Glasses", "eggs": "Eggs",
+    "westside": "Westside Sign", "heartlocket": "Heart Locket", "astralshard": "Astral Shard", "minioscar": "Mini Oscar", "caps": "Caps", "plums": "Plums", "durov": "Durov", "media": "Movies & Cartoons", "matrix": "The Matrix", "goth": "Goth",
 }
 
 
@@ -155,20 +166,24 @@ def match(gift: str, model: str) -> list[str]:
 
 # исключения по названию: тема -> {(подарок, модель)}, которые совпали со словом, но по смыслу не подходят
 # подарки целиком, которые не должны попадать в тему (в том числе по слову в названии модели)
-EXCLUDE_GIFTS = {"bags": {"Swag Bag", "Spy Agaric"}}
+EXCLUDE_GIFTS = {"bags": {"Swag Bag", "Spy Agaric"}, "caps": {"Spy Agaric"}}  # у Spy Agaric «cap» — шляпка гриба
 EXCLUDE = {
     "flowers": {("B-Day Candle", "Rose Mint"), ("Jack-in-the-Box", "Fake Flower"), ("Hex Pot", "Orchid Volt"), ("Hex Pot", "Burnt Petals"), ("Hex Pot", "Burnt Roses"),
                 ("Chill Flame", "Iron Rose"), ("Tama Gadget", "Orchid"), ("Tama Gadget", "Clover"), ("Easter Egg", "Flowers"),
                 ("Lol Pop", "Rose Wine"), ("Mirage Lamp", "Tulip Petals"), ("Hypno Lollipop", "Purple Petal"), ("Ginger Cookie", "Rose Water")},
+    "ducks": {("Pool Float", "Quacky")},
     "cigars": {("Star Notepad", "Tobacco")},
+    "caps": {("Santa Hat", "Ice Cap")},
+    "matrix": {("Party Sparkler", "Neo Tokyo"), ("Record Player", "Neo-Noir"), ("Bonded Ring", "Neo Tribe")},
     "watches": {("Easter Egg", "Moon Watch"), ("Top Hat", "Chronos")},
     "cars": {("Pool Float", "Water Scooter"), ("Pool Float", "Motorboat"), ("Witch Hat", "Hex Taxi"), ("Bow Tie", "Bus Guys"),
-             ("Snoop Cigar", "Hot Rod"), ("Neko Helmet", "Cotton Drift")},
+             ("Snoop Cigar", "Hot Rod"), ("Neko Helmet", "Cotton Drift"), ("Durov's Glasses", "Speedster")},
     "birds": {("Instant Ramen", "Chicken"), ("Ice Cream", "Fried Chicken"), ("Candy Cane", "Phoenix"), ("Star Notepad", "Phoenix"),
               ("Heroic Helmet", "Phoenix"), ("Easter Egg", "Purple Bird"), ("Winter Wreath", "Flamingo")},
     "bags": {("Money Pot", "Potato Sack"), ("Snow Globe", "Bag End"), ("Joyful Bundle", "Pepe Bag"), ("Whip Cupcake", "Bag End"), ("Mood Pack", "Burger Bag"), ("Mood Pack", "Croc Sack")},
     "rings": {("Evil Eye", "Red Ring"), ("Tama Gadget", "Water Rings"), ("Berry Box", "Mood Ring"),
-              ("Jingle Bells", "Orchid Ring"), ("Jingle Bells", "Purple Ring")},
+              ("Jingle Bells", "Orchid Ring"), ("Jingle Bells", "Purple Ring"), ("Snoop Cigar", "Snoop Ring"), ("Khabib's Papakha", "Fighting Ring")},
+    "glasses": {("Swag Bag", "Aviators")},
 }
 # модели, которые попадают в 18+ только из-за слова peach/bikini, но по смыслу не относятся: (подарок, модель)
 ADULT_EXCLUDE = {

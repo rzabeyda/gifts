@@ -134,6 +134,27 @@ CREATE TABLE IF NOT EXISTS bd_prices (
 -- история донатов: Stars (из бота) и переводы GRAM/USDT на кошелёк (из tonapi)
 -- рефералы: кто кого привёл по ссылке ?start=ref_<id> (считаем только новых пользователей бота)
 CREATE TABLE IF NOT EXISTS referrals (invited_id INTEGER PRIMARY KEY, inviter_id INTEGER NOT NULL, ts INTEGER NOT NULL);
+-- засчитанные рефералы: друг с NFT в профиле; один NFT (по номеру) и один друг засчитываются только один раз
+CREATE TABLE IF NOT EXISTS ref_credits (
+    invited_id INTEGER PRIMARY KEY,
+    inviter_id INTEGER NOT NULL,
+    nft_slug TEXT NOT NULL UNIQUE,
+    stars INTEGER NOT NULL,
+    ts INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_ref_credits_inviter ON ref_credits (inviter_id);
+-- заявки на вывод звёзд: status = pending | paid | rejected
+CREATE TABLE IF NOT EXISTS ref_payouts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tg_id INTEGER NOT NULL,
+    stars INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    ts INTEGER NOT NULL
+);
+-- итог розыгрыша NFT среди рефералов: один раз
+CREATE TABLE IF NOT EXISTS ref_draw (id INTEGER PRIMARY KEY, winner_id INTEGER NOT NULL, tickets INTEGER NOT NULL, total INTEGER NOT NULL, ts INTEGER NOT NULL);
+-- id всех известных подарков (в том числе ещё без улучшения), чтобы заметить новый подарок
+CREATE TABLE IF NOT EXISTS seen_gift_ids (id TEXT PRIMARY KEY, ts INTEGER NOT NULL);
 -- коллекции, о которых уже знаем (для сообщения о новых подарках)
 CREATE TABLE IF NOT EXISTS seen_gifts (name TEXT PRIMARY KEY, ts INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS donations (
@@ -178,6 +199,14 @@ async def init() -> None:
                 await db.execute(f"ALTER TABLE users ADD COLUMN {col} {typ}")
             except Exception:
                 pass
+        try:  # друг вступил в наш чат (проверяет сервер)
+            await db.execute("ALTER TABLE referrals ADD COLUMN in_chat INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
+        try:  # у приглашённого есть Telegram Premium (пишет бот при запуске)
+            await db.execute("ALTER TABLE referrals ADD COLUMN premium INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
         try:  # ежедневная сводка по избранному: 1 — включена (добавлено позже)
             await db.execute("ALTER TABLE users ADD COLUMN digest INTEGER NOT NULL DEFAULT 1")
         except Exception:

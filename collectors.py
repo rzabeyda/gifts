@@ -11,6 +11,7 @@ from urllib.parse import quote
 import httpx
 
 import db
+import modchat
 
 log = logging.getLogger("collectors")
 CHANGES = "https://api.changes.tg"  # каталог подарков/моделей (credit: @GiftChanges)
@@ -237,8 +238,17 @@ DONATE_WALLET = "UQAgX7QqhUKcEfW-7C4e2Z9x_A6iIvsDZJ9zI05H96-wvmPK"
 IGNORE_SENDERS = {"0:ebffd0fc20f4665439589839c389576ae91783f9c22c9a3d0ce1c5d68d3baaf2"}
 
 
+_DON_RAW = None  # raw-адрес кошелька для донатов (определяется один раз)
+
+
 async def collect_donations(client: httpx.AsyncClient) -> None:
     """Входящие переводы GRAM (TON) и USDT на кошелёк для доната: открытый tonapi, раз в 10 минут."""
+    global _DON_RAW
+    if not _DON_RAW:
+        try:
+            _DON_RAW = (await client.get(f"https://tonapi.io/v2/address/{DONATE_WALLET}/parse")).json().get("raw_form")
+        except Exception:
+            pass
     r = await client.get(f"https://tonapi.io/v2/accounts/{DONATE_WALLET}/events", params={"limit": 100})
     r.raise_for_status()
     rows = []
@@ -256,17 +266,24 @@ async def collect_donations(client: httpx.AsyncClient) -> None:
                 kind, amount = "usdt", int(x.get("amount") or 0) / 10 ** int((x.get("jetton") or {}).get("decimals") or 6)
             else:
                 continue
-            if not rec or amount <= 0:
+            if not rec or amount < (0.005 if kind == "ton" else 0.1):  # пылевые переводы (спам с рекламой в комментарии) донатами не считаем
                 continue
-            if sen.get("address") in IGNORE_SENDERS:
+            if sen.get("address") in IGNORE_SENDERS or (_DON_RAW and sen.get("address") == _DON_RAW):  # свои же переводы с кошелька (например, покупка Stars) — не донаты
+                continue
+            if _DON_RAW and rec != _DON_RAW:  # получатель должен быть наш кошелёк
                 continue
             addr = sen.get("name") or sen.get("address") or "?"
             who = sen.get("name") or (addr[:4] + "…" + addr[-4:] if len(addr) > 12 else addr)
-            msg = str(x.get("comment") or "").strip()[:50] or None  # комментарий к переводу
+            cm = str(x.get("comment") or "").strip()
+            if not cm.lower().startswith("#gifts"):  # донатом считаем только перевод кнопкой «Донат» в приложении: в комментарии стоит метка #gifts
+                continue
+            msg = cm[6:].strip()[:50] or None  # сообщение донатера без метки
+            if msg and modchat.has_any_link(msg):  # ссылки в комментариях не показываем
+                msg = None
             rows.append((f"{ev['event_id']}:{t}", int(ev["timestamp"]), kind, who, amount, (x.get("recipient") or {}).get("address"), msg))
     # входящими считаем переводы, где получатель — наш кошелёк (его raw-адрес совпадает у всех входящих)
     from collections import Counter
-    mine = Counter(r[5] for r in rows).most_common(1)[0][0] if rows else None
+    mine = _DON_RAW or (Counter(r[5] for r in rows).most_common(1)[0][0] if rows else None)
     fresh = []
     async with db.connect() as conn:
         for rid, ts, kind, who, amount, rec, msg in rows:

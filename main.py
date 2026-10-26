@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 
 import caps
 import collectors
+import modchat
 import db
 import images
 import themes
@@ -46,7 +47,7 @@ async def keep_warm():
 async def lifespan(app: FastAPI):
     await db.init()
     tasks = [
-        asyncio.create_task(collectors.run_forever(collectors.collect_catalog, 6 * 3600, "catalog")),
+        asyncio.create_task(collectors.run_forever(collectors.collect_catalog, 3600, "catalog")),
         asyncio.create_task(collectors.run_forever(collectors.collect_rates, 60, "rates")),
         asyncio.create_task(collectors.run_forever(collectors.collect_marketcap, 600, "marketcap")),
         asyncio.create_task(collectors.run_forever(collectors.collect_supply, 6 * 3600, "supply")),
@@ -63,6 +64,8 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(alerts_loop()),
         asyncio.create_task(digest_loop()),
         asyncio.create_task(snapshot_loop()),
+        asyncio.create_task(credit_referrals()),
+        asyncio.create_task(check_chat_members()),
         asyncio.create_task(new_gifts_loop()),
     ]
     yield
@@ -240,6 +243,11 @@ async def _gifts_compute():
         """SELECT f.gift, f.price_ton, f.ts FROM floors f WHERE f.model = '' AND f.market = 'community'
            AND f.ts = (SELECT MAX(ts) FROM floors x WHERE x.gift = f.gift AND x.model = '')""")}
     now_ts = time.time()
+    trades: dict[str, dict] = {}  # продажи с MRKT (наша база продаж): число и оборот за периоды
+    for per, days in PERIOD_DAYS.items():
+        since = 0 if days is None else int(now_ts - days * 86400)
+        for x in await q("SELECT gift, COUNT(*) AS n, SUM(price_ton) AS v FROM sales WHERE ts >= ? GROUP BY gift", (since,)):
+            trades.setdefault(x["gift"], {})[per] = (x["n"], x["v"])
     for r in rows:  # цена подарка; капитализация = число улучшенных × эта цена
         g0 = gfl.get(r["name"])
         if g0 and now_ts - g0["ts"] < FRESH_SNAPSHOT:
@@ -252,6 +260,9 @@ async def _gifts_compute():
         count = r["upgraded"] or r["supply"]
         r["cap_ton"] = r["floor_ton"] * count if r["floor_ton"] and count else None
         r["changes"] = price_changes(hist.get(r["name"], []))
+        t = trades.get(r["name"], {})
+        r["trades"] = {per: (t.get(per) or (0, 0))[0] for per in PERIOD_DAYS}
+        r["volume"] = {per: round((t.get(per) or (0, 0))[1] or 0, 1) for per in PERIOD_DAYS}
         mp = mkt.get(r["name"])
         r["markets"] = {"portals": mp["portals"], "mrkt": mp["mrkt"], "getgems": mp["getgems"]} if mp else {}
     return rows
@@ -390,18 +401,39 @@ async def theme_members() -> dict:
     return idx
 
 
+_sales_cache: dict = {"t": 0.0, "v": {}}
+
+
+async def sales_by_model() -> dict:
+    """Число продаж по моделям за периоды: {(подарок, модель): {период: n}} (кэш 60 секунд)."""
+    if time.time() - _sales_cache["t"] < 60 and _sales_cache["v"]:
+        return _sales_cache["v"]
+    out: dict = {}
+    now_ts = time.time()
+    for per, days in PERIOD_DAYS.items():
+        since = 0 if days is None else int(now_ts - days * 86400)
+        for x in await q("SELECT gift, model, COUNT(*) AS n FROM sales WHERE ts >= ? GROUP BY gift, model", (since,)):
+            out.setdefault((x["gift"], x["model"]), {})[per] = x["n"]
+    _sales_cache.update(t=time.time(), v=out)
+    return out
+
+
 @app.get("/api/themes")
 async def api_themes():
-    idx, eff = await theme_members(), await effective_floors()
+    idx, eff, mch, sbm = await theme_members(), await effective_floors(), await model_changes(), await sales_by_model()
+    sup = {g["name"]: (g.get("upgraded") or g.get("supply") or 0) for g in await gifts()}
     out = []
     for tid, title, _, _ in themes.THEMES:
         ms = idx.get(tid, [])
-        if len(ms) < 6:
+        if len(ms) < 3:
             continue
         prices = [eff[m["gift"]][m["name"]][0] for m in ms if m["name"] in eff.get(m["gift"], {})]
         rare = sorted(ms, key=lambda m: (m["rarity_permille"] is None, m["rarity_permille"] or 0))[:3]
         out.append({"id": tid, "group": themes.GROUP_OF.get(tid, "other"), "title": title, "title_en": themes.TITLES_EN.get(tid, title), "count": len(ms),
                     "floor_ton": min(prices) if prices else None,
+                    "changes": {per: (round(statistics.median(c), 2) if (c := [(mch.get((x["gift"], x["name"])) or {}).get(per) for x in ms if (mch.get((x["gift"], x["name"])) or {}).get(per) is not None]) else None) for per in PERIOD_DAYS},
+                    "supply": round(sum(sup.get(x["gift"], 0) * (x["rarity_permille"] or 0) / 1000 for x in ms)),
+                    "trades": {per: sum((sbm.get((x["gift"], x["name"])) or {}).get(per, 0) for x in ms) for per in PERIOD_DAYS},
                     "samples": [{"gift": m["gift"], "model": m["name"]} for m in rare]})
     return out
 
@@ -411,6 +443,8 @@ async def api_theme_models(tid: str):
     if tid not in themes.TITLES:
         raise HTTPException(404, "unknown theme")
     ms, eff = (await theme_members())[tid], await effective_floors()
+    mch, sbm = await model_changes(), await sales_by_model()
+    sup = {g["name"]: (g.get("upgraded") or g.get("supply") or 0) for g in await gifts()}
     last = {(r["gift"], r["model"]): r for r in await q(
         "SELECT gift, model, price_ton, MAX(ts) AS ts FROM sales GROUP BY gift, model")}
     out = []
@@ -419,6 +453,9 @@ async def api_theme_models(tid: str):
         ls = last.get((m["gift"], m["name"]))
         out.append({"gift": m["gift"], "name": m["name"], "rarity_permille": m["rarity_permille"],
                     "floor_ton": price, "price_src": src,
+                    "changes": {per: (mch.get((m["gift"], m["name"])) or {}).get(per) for per in PERIOD_DAYS},
+                    "trades": {per: (sbm.get((m["gift"], m["name"])) or {}).get(per, 0) for per in PERIOD_DAYS},
+                    "supply": round(sup.get(m["gift"], 0) * (m["rarity_permille"] or 0) / 1000),
                     "last_sale_ton": ls["price_ton"] if ls else None, "last_sale_ts": ls["ts"] if ls else None})
     out.sort(key=lambda r: (r["floor_ton"] is None, r["floor_ton"] or 0, r["name"]))
     return {"id": tid, "title": themes.TITLES[tid], "title_en": themes.TITLES_EN.get(tid, themes.TITLES[tid]), "models": out}
@@ -483,7 +520,7 @@ import hashlib
 import hmac
 import json as _json
 import os
-from urllib.parse import parse_qsl
+from urllib.parse import quote_plus, parse_qsl
 
 from fastapi import Request
 from pydantic import BaseModel
@@ -755,12 +792,12 @@ def _card_data(kind: str, key: str, lang: str, gifts_list: list, themes_out: lis
     raise HTTPException(404)
 
 
-RANK_NAMES = [("Гой", "Goy"), ("Школотрон", "Newbie"), ("Хомяк", "Hamster"), ("Акула", "Shark"), ("Кит", "Whale")]
+RANK_NAMES = [("Гой", "Goy"), ("Школотрон", "Newbie"), ("Сигма", "Sigma"), ("Инвестор", "Investor"), ("Кит", "Whale"), ("Павел Дуров", "Pavel Durov")]
 
 
 def rank_name(v: float, n: int, ru: bool) -> str:
-    """Гой — нет NFT; дальше по стоимости коллекции в GRAM: до 10, до 100, до 1000, больше."""
-    i = 0 if n == 0 else 1 if v < 11 else 2 if v < 101 else 3 if v <= 1000 else 4
+    """Гой — нет NFT; дальше по стоимости коллекции в GRAM: до 10, до 100, до 1000, до 10000, больше."""
+    i = 0 if n == 0 else 1 if v < 11 else 2 if v < 101 else 3 if v <= 1000 else 4 if v <= 10000 else 5
     return RANK_NAMES[i][0 if ru else 1]
 
 
@@ -776,7 +813,7 @@ async def _card_ext(kind: str, key: str, lang: str, period: str = "1d"):
         if not rows:
             raise HTTPException(404)
         v = rows[0]["pf_value"] or 0
-        rk, val = rank_name(v, rows[0]["pf_count"] or 0, ru), _num(v)
+        rk, val = rank_name(v, rows[0]["pf_count"] or 0, ru), f"{round(v):,}".replace(",", " ")
         ims = [_load_img("m", images.short(t["gift"]), images.mfile(t["model"])) for t in _json.loads(rows[0]["pf_top"] or "[]")]
         if kind == "r":
             return rows[0]["pf_name"] or ("Коллекционер" if ru else "Collector"), f"{rk} · {val} GRAM", ims, "r_" + key, (255, 170, 230)
@@ -795,7 +832,7 @@ async def _card_ext(kind: str, key: str, lang: str, period: str = "1d"):
 async def api_top_profiles(request: Request):
     """Топ коллекций пользователей по стоимости; владелец и скрывшие себя в списке не показываются."""
     uid = await current_user(request)
-    rows = await q("SELECT tg_id, pf_name, pf_user, pf_value, pf_count FROM users WHERE pf_ts IS NOT NULL AND tg_id != ? AND COALESCE(top_hidden, 0) = 0 ORDER BY pf_value DESC LIMIT 10", (OWNER_ID,))
+    rows = await q("SELECT tg_id, pf_name, pf_user, pf_value, pf_count FROM users WHERE pf_ts IS NOT NULL AND tg_id != ? AND COALESCE(top_hidden, 0) = 0 ORDER BY pf_value DESC LIMIT 15", (OWNER_ID,))
     me = await q("SELECT pf_value, pf_count, COALESCE(top_hidden, 0) AS hidden FROM users WHERE tg_id = ?", (uid,))
     mine = None
     if me and me[0]["pf_value"] is not None and uid != OWNER_ID:
@@ -897,13 +934,109 @@ async def snapshot_loop():
 
 @app.get("/api/friends")
 async def api_friends(request: Request):
-    """Рефералы пользователя: сколько привёл и кто из них с NFT."""
+    """Рефералы пользователя: всего, с NFT, с Premium и билеты. У владельца считаются все, и в том числе пришедшие до запуска (только для показа: в розыгрыше его нет)."""
     uid = await current_user(request)
-    total = (await q("SELECT COUNT(*) AS n FROM referrals WHERE inviter_id = ?", (uid,)))[0]["n"]
-    nft = (await q("SELECT COUNT(*) AS n FROM referrals r JOIN users u ON u.tg_id = r.invited_id WHERE r.inviter_id = ? AND COALESCE(u.pf_count, 0) > 0", (uid,)))[0]["n"]
-    rows = await q("SELECT u.pf_name, u.pf_user, u.pf_value, u.pf_count FROM referrals r LEFT JOIN users u ON u.tg_id = r.invited_id WHERE r.inviter_id = ? ORDER BY r.ts DESC LIMIT 50", (uid,))
-    return {"count": total, "with_nft": nft,
+    since = 0
+    base = f"FROM referrals r WHERE r.inviter_id = ? AND r.ts >= {since}"
+    has_nft = "(EXISTS (SELECT 1 FROM ref_credits c WHERE c.invited_id = r.invited_id)" + (" OR COALESCE((SELECT pf_count FROM users x WHERE x.tg_id = r.invited_id), 0) > 0)" if uid == OWNER_ID else ")")
+    total = (await q("SELECT COUNT(*) AS n " + base, (uid,)))[0]["n"]
+    nft = (await q("SELECT COUNT(*) AS n " + base + " AND " + has_nft, (uid,)))[0]["n"]
+    prem = (await q("SELECT COUNT(*) AS n " + base + " AND r.premium = 1", (uid,)))[0]["n"]
+    chat = (await q("SELECT COUNT(*) AS n " + base + " AND r.in_chat = 1", (uid,)))[0]["n"]
+    tickets = total * T_BOT + chat * T_CHAT + prem * T_PRM + nft * T_NFT
+    rows = await q(f"SELECT u.pf_name, u.pf_user, u.pf_value, u.pf_count FROM referrals r LEFT JOIN users u ON u.tg_id = r.invited_id WHERE r.inviter_id = ? AND r.ts >= {since} ORDER BY r.ts DESC LIMIT 50", (uid,))
+    return {"count": total, "with_nft": nft, "with_premium": prem, "in_chat": chat, "tickets": tickets,
             "items": [{"name": disp_name(r["pf_name"] or "", r["pf_user"] or ""), "value": r["pf_value"] or 0, "count": r["pf_count"] or 0} for r in rows]}
+
+
+@app.get("/api/race")
+async def api_race(request: Request):
+    """Топ реферальной гонки по билетам (без владельца)."""
+    await current_user(request)
+    rows = await q("""SELECT r.inviter_id, COUNT(*) AS n, SUM(r.in_chat) AS chat, SUM(r.premium) AS prm,
+            SUM(CASE WHEN EXISTS (SELECT 1 FROM ref_credits c WHERE c.invited_id = r.invited_id) THEN 1 ELSE 0 END) AS nft, u.pf_user, u.pf_name
+        FROM referrals r LEFT JOIN users u ON u.tg_id = r.inviter_id WHERE r.inviter_id != ? GROUP BY r.inviter_id""", (OWNER_ID,))
+    top = sorted([{"name": disp_name(r["pf_name"] or "", r["pf_user"] or ""), "user": r["pf_user"] or "", "tickets": r["n"] * T_BOT + (r["chat"] or 0) * T_CHAT + (r["prm"] or 0) * T_PRM + (r["nft"] or 0) * T_NFT} for r in rows], key=lambda x: -x["tickets"])[:7]
+    return {"top": top, "end": "2026-11-01T16:00:00+03:00"}
+
+
+REF_STARS = 25  # награда за друга с NFT
+T_BOT, T_CHAT, T_PRM, T_NFT = 0, 2, 3, 6  # билеты за друга: зашёл в бота / вступил в чат / Premium / есть NFT
+CHAT_ID = "@peeppo_chat"
+
+
+async def check_chat_members():
+    """Раз в 10 минут: кто из приглашённых вступил в чат (нужен бот в чате)."""
+    await asyncio.sleep(200)
+    while True:
+        try:
+            token = os.getenv("BOT_TOKEN", "")
+            rows = await q("SELECT invited_id FROM referrals WHERE in_chat = 0 AND ts > ? ORDER BY ts DESC LIMIT 120", (int(time.time()) - 30 * 86400,))
+            async with httpx.AsyncClient(timeout=15) as c:
+                for r in rows:
+                    j = (await c.post(f"https://api.telegram.org/bot{token}/getChatMember", json={"chat_id": CHAT_ID, "user_id": r["invited_id"]})).json()
+                    st = (j.get("result") or {}).get("status") if j.get("ok") else None
+                    if st in ("member", "administrator", "creator", "restricted"):
+                        async with db.connect() as conn:
+                            await conn.execute("UPDATE referrals SET in_chat = 1 WHERE invited_id = ?", (r["invited_id"],))
+                            await conn.commit()
+                    await asyncio.sleep(0.3)
+        except Exception as e:
+            logging.warning("chat members: %s", e)
+        await asyncio.sleep(600)
+REF_START = 1792915252  # засчитываются только друзья, пришедшие после запуска программы (задним числом не считаем)
+
+
+async def _user_nft_slugs(uid: int, token: str):
+    """Адреса NFT из профиля пользователя (getUserGifts); None — профиль недоступен."""
+    out, offset = [], ""
+    async with httpx.AsyncClient(timeout=25) as c:
+        for _ in range(6):
+            r = (await c.post(f"https://api.telegram.org/bot{token}/getUserGifts", json={"user_id": uid, "limit": 100, "offset": offset, "exclude_unique": False})).json()
+            if not r.get("ok"):
+                return None
+            res = r["result"]
+            out += [x["gift"].get("name") for x in res.get("gifts", []) if x.get("type") == "unique" and x["gift"].get("name")]
+            offset = res.get("next_offset") or ""
+            if not offset:
+                break
+            await asyncio.sleep(0.2)
+    return out
+
+
+async def credit_referrals():
+    """Раз в 10 минут проверяет приглашённых: есть ли в профиле NFT, которого ещё нет в зачётах; если есть — +25 TGS пригласившему."""
+    await asyncio.sleep(150)
+    while True:
+        try:
+            token = os.getenv("BOT_TOKEN", "")
+            rows = await q("""SELECT r.invited_id, r.inviter_id FROM referrals r
+                              WHERE r.invited_id != r.inviter_id AND r.ts > ? AND r.ts >= 0 AND NOT EXISTS (SELECT 1 FROM ref_credits c WHERE c.invited_id = r.invited_id)
+                              ORDER BY r.ts LIMIT 80""", (int(time.time()) - 30 * 86400,))
+            for r in rows:
+                slugs = await _user_nft_slugs(r["invited_id"], token)
+                await asyncio.sleep(0.4)
+                if not slugs:
+                    continue
+                used = {x["nft_slug"] for x in await q("SELECT nft_slug FROM ref_credits")}
+                fresh = next((s for s in slugs if s not in used), None)
+                if not fresh:
+                    continue
+                async with db.connect() as conn:
+                    cur = await conn.execute("INSERT OR IGNORE INTO ref_credits (invited_id, inviter_id, nft_slug, stars, ts) VALUES (?,?,?,?,?)",
+                                             (r["invited_id"], r["inviter_id"], fresh, REF_STARS, int(time.time())))
+                    await conn.commit()
+                if cur.rowcount > 0 and token:
+                    u = await q("SELECT COALESCE(lang, 'ru') AS lang FROM users WHERE tg_id = ?", (r["inviter_id"],))
+                    ru = (u[0]["lang"] if u else "ru") == "ru"
+                    try:
+                        async with httpx.AsyncClient(timeout=15) as c:
+                            await c.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": r["inviter_id"], "text": f"Друг с NFT засчитан: +{T_NFT} билетов в розыгрыше. Статистика: /ref" if ru else f"Friend with NFT counted: +{T_NFT} raffle tickets. Stats: /ref"})
+                    except Exception:
+                        pass
+        except Exception as e:
+            logging.warning("ref credits: %s", e)
+        await asyncio.sleep(600)
 
 
 class SnapIn(BaseModel):
@@ -1121,12 +1254,13 @@ SHARE_URL = "https://t.me/share/url?url=https%3A//t.me/gift20bot&text=" + "%D0%9
 
 
 def _kb(url: str, ru: bool) -> dict:
-    """Кнопки под сообщением бота: Open и справа Поделиться."""
-    return {"inline_keyboard": [[{"text": "Open", "web_app": {"url": url}}, {"text": "Поделиться" if ru else "Share", "url": SHARE_URL}]]}
+    """Кнопки под сообщением бота: Open и Чат в первом ряду, внизу Поделиться."""
+    return {"inline_keyboard": [[{"text": "Open", "web_app": {"url": url}}, {"text": "Chat", "url": "https://t.me/peeppo_chat"}],
+                                [{"text": "Поделиться" if ru else "Share", "url": SHARE_URL}]]}
 
 
 def _fmt_price(p: float) -> str:
-    return f"{p:,.0f}".replace(",", " ") if p >= 100 else f"{p:g}"
+    return f"{p:,.0f}".replace(",", " ") if p >= 100 else f"{p:.2f}".rstrip("0").rstrip(".")
 
 
 async def build_digest(uid: int, ru: bool, g_by: dict, eff: dict, mch: dict, idx: dict) -> str | None:
@@ -1148,17 +1282,21 @@ async def build_digest(uid: int, ru: bool, g_by: dict, eff: dict, mch: dict, idx
             prices = [eff[x["gift"]][x["name"]][0] for x in ms if x["name"] in eff.get(x["gift"], {})]
             if ch and prices:
                 title = themes.TITLES_EN.get(f["gift"]) if not ru else themes.TITLES.get(f["gift"])
-                items.append((ch[len(ch) // 2], (title or f["gift"]) + (" · сэт" if ru else " · set"), min(prices)))
+                items.append((ch[len(ch) // 2], (title or f["gift"]) + (" (сэт)" if ru else " (set)"), -min(prices)))
     items = [i for i in items if i[0] is not None]
     if not items:
         return None
     items.sort(key=lambda i: -abs(i[0]))
-    lines = [f"{c:+.1f}%".replace("-", "−") + f"  {name} · {_fmt_price(p)}" for c, name, p in items[:10]]
+    def _row(c, name, p):  # название, под ним изменение и цена; у сэта цена «от»
+        pct = f"{c:+.1f}%".replace("-", "\u2212") if c else "0.0%"
+        price = ("от " if p < 0 else "") + _fmt_price(abs(p)) + " GRAM"
+        return f"{name}\n{pct} \u00b7 {price}"
+    lines = [_row(c, name, p) for c, name, p in items[:10]]
     if len(items) > 10:
         lines.append(f"... +{len(items) - 10}")
     head = "Избранное за сутки" if ru else "Favorites, last 24h"
     tail = "Отключить: /digest" if ru else "Turn off: /digest"
-    return head + "\n\n" + "\n".join(lines) + "\n\n" + tail
+    return head + "\n\n" + "\n\n".join(lines) + "\n\n" + tail
 
 
 async def digest_loop():
@@ -1194,11 +1332,68 @@ async def digest_loop():
             logging.warning("digest: %s", e)
 
 
+def _u16(s: str) -> int:
+    return len(s.encode("utf-16-le")) // 2
+
+
+async def gift_announce_parts(c: httpx.AsyncClient, name: str, ru: bool):
+    """Короткое объявление о новом улучшении: название, число моделей и три самые редкие. -> (текст, entities, текст)"""
+    models = []
+    try:
+        models = (await c.get(f"https://api.changes.tg/models/{quote_plus(name)}", params={"sorted": ""})).json()
+    except Exception:
+        pass
+    models = [x for x in models if isinstance(x, dict) and x.get("rarityPermille") is not None]
+    nl = chr(10)
+    lines = [("Новое улучшение: " if ru else "New upgrade: ") + name]
+    if models:
+        rare = ", ".join(x["name"] for x in models[:3])
+        lines.append((f"Моделей: {len(models)} · редкие: {rare}" if ru else f"Models: {len(models)} · rarest: {rare}"))
+    text = nl.join(lines)[:1024]
+    return text, [], text
+
+
+async def send_gift_announce(c: httpx.AsyncClient, token: str, uid, ru: bool, name: str, parts, photo: bytes | None, url: str, group: bool = False) -> int:
+    """Отправляет объявление: картинка + короткая подпись. В группе кнопка-ссылка на бота (web_app там запрещён)."""
+    caption = parts[0]
+    kb = {"inline_keyboard": [[{"text": "Open", "url": "https://t.me/gift20bot?start=" + url}]]} if group else _kb(url, ru)
+    api = f"https://api.telegram.org/bot{token}"
+    if photo:
+        r = await c.post(api + "/sendPhoto", data={"chat_id": str(uid), "caption": caption, "reply_markup": _json.dumps(kb)}, files={"photo": ("gift.webp", photo, "image/webp")})
+    else:
+        r = await c.post(api + "/sendMessage", json={"chat_id": uid, "text": caption, "reply_markup": kb})
+    return r.status_code
+
+
+CHAT_TARGET = "@peeppo_chat"
+
+
+async def _broadcast_gift(c, token: str, caption_ru: str, caption_en: str, photo, slug: str):
+    """Одно сообщение в чат и всем, у кого включены сообщения бота (/digest)."""
+    base = os.getenv("WEBAPP_URL", "https://gifts.zabeyda.lol")
+    param = ("g_" + slug) if slug else ""
+    try:  # в чат: короткое сообщение с картинкой
+        await send_gift_announce(c, token, CHAT_TARGET, True, "", (caption_ru, [], caption_ru), photo, param, group=True)
+    except Exception:
+        pass
+    users = await q("SELECT tg_id, COALESCE(lang, 'ru') AS lang FROM users WHERE digest = 1")
+    for u in users:
+        ru = u["lang"] == "ru"
+        code = await send_gift_announce(c, token, u["tg_id"], ru, "", (caption_ru if ru else caption_en, [], ""), photo, base + ("?s=" + param if param else ""))
+        if code == 403:  # заблокировал бота: больше не пишем
+            async with db.connect() as conn:
+                await conn.execute("UPDATE users SET digest = 0 WHERE tg_id = ?", (u["tg_id"],))
+                await conn.commit()
+        await asyncio.sleep(0.06)
+
+
 async def new_gifts_loop():
-    """Раз в 10 минут ищет новые коллекции и сообщает о них тем, у кого включены сообщения бота (/digest)."""
+    """Раз в 10 минут: новое улучшение подарка и новый подарок в Telegram -> короткое сообщение в чат и в бот."""
     await asyncio.sleep(120)
     while True:
         try:
+            token = os.getenv("BOT_TOKEN", "")
+            # 1) новые улучшаемые коллекции
             names = [g["name"] for g in await gifts()]
             seen = {r["name"] for r in await q("SELECT name FROM seen_gifts")}
             new = [n for n in names if n not in seen]
@@ -1206,26 +1401,29 @@ async def new_gifts_loop():
                 async with db.connect() as conn:
                     await conn.executemany("INSERT OR IGNORE INTO seen_gifts (name, ts) VALUES (?, ?)", [(n, int(time.time())) for n in new])
                     await conn.commit()
-            # первый запуск и сбои каталога (сразу много «новых») — просто запоминаем, не пишем
-            if new and seen and len(new) <= 5:
-                token = os.getenv("BOT_TOKEN", "")
-                g_by = {g["name"]: g for g in await gifts()}
-                users = await q("SELECT tg_id, COALESCE(lang, 'ru') AS lang FROM users WHERE digest = 1")
-                async with httpx.AsyncClient(timeout=20) as c:
-                    for u in users:
-                        ru = u["lang"] == "ru"
-                        for n in new:
-                            g = g_by.get(n, {})
-                            info = " · ".join(x for x in [f"{_fmt_price(g['floor_ton'])} GRAM" if g.get("floor_ton") else "", f"{int(g['supply']):,}".replace(",", " ") if g.get("supply") else ""] if x)
-                            text = ("Новый подарок: " if ru else "New gift: ") + n + ("\n" + info if info else "")
-                            url = os.getenv("WEBAPP_URL", "https://gifts.zabeyda.lol") + "?s=g_" + re.sub(r"[^a-z ]", "", n.lower()).strip().replace(" ", "_")
-                            r = await c.post(f"https://api.telegram.org/bot{token}/sendMessage", json={"chat_id": u["tg_id"], "text": text, "reply_markup": _kb(url, ru)})
-                            if r.status_code in (400, 403):
-                                async with db.connect() as conn:
-                                    await conn.execute("UPDATE users SET digest = 0 WHERE tg_id = ?", (u["tg_id"],))
-                                    await conn.commit()
-                                break
-                            await asyncio.sleep(0.05)
+            if new and seen and len(new) <= 5:  # первый запуск и сбои каталога (сразу много «новых») не объявляем
+                async with httpx.AsyncClient(timeout=30) as c:
+                    for n in new:
+                        ru, en = await gift_announce_parts(c, n, True), await gift_announce_parts(c, n, False)
+                        path = await images.ensure(c, "g", images.short(n), "", True, names=(n, ""))
+                        await _broadcast_gift(c, token, ru[0], en[0], path.read_bytes() if path else None, images.short(n))
+            # 2) новые подарки (ещё без улучшения): по списку id всех подарков
+            async with httpx.AsyncClient(timeout=30) as c:
+                dates = (await c.get("https://api.changes.tg/dates")).json()
+                if isinstance(dates, list) and len(dates) > 50:
+                    known = {r["id"] for r in await q("SELECT id FROM seen_gift_ids")}
+                    fresh = [x for x in dates if x.get("id") and x["id"] not in known]
+                    if fresh:
+                        async with db.connect() as conn:
+                            await conn.executemany("INSERT OR IGNORE INTO seen_gift_ids (id, ts) VALUES (?, ?)", [(x["id"], int(time.time())) for x in fresh])
+                            await conn.commit()
+                    if fresh and known and len(fresh) <= 3:
+                        for x in fresh:
+                            if x.get("upgradable"):  # улучшаемые уже объявлены выше
+                                continue
+                            r = await c.get(f"https://api.changes.tg/original/{x['id']}.png")
+                            photo = r.content if r.status_code == 200 else None
+                            await _broadcast_gift(c, token, "Вышел новый подарок в Telegram", "A new gift is out in Telegram", photo, "")
         except Exception as e:
             logging.warning("new gifts: %s", e)
         await asyncio.sleep(600)
@@ -1243,12 +1441,14 @@ _donate_state = {"last": 0.0}
 async def api_donate_stars(body: StarsIn):
     """Ссылка на счёт в Telegram Stars для доната (любая сумма 1–10000)."""
     token = os.getenv("BOT_TOKEN", "")
-    if not token or not (1 <= body.amount <= 10000):
+    if not token or not (25 <= body.amount <= 10000):
         raise HTTPException(400, "bad amount")
     if time.time() - _donate_state["last"] < 0.3:  # не чаще ~3 в секунду на всех
         raise HTTPException(429, "slow down")
     _donate_state["last"] = time.time()
-    msg = re.sub(r"[\x00-\x1f\x7f]", " ", body.message or "").strip()[:50]  # короткое сообщение к донату, не больше 50 символов
+    msg = re.sub(r"[\x00-\x1f\x7f]", " ", body.message or "").strip()[:50]
+    if modchat.has_any_link(msg):
+        raise HTTPException(400, "links are not allowed")  # короткое сообщение к донату, не больше 50 символов
     payload = "d:" + msg
     while len(payload.encode()) > 120:  # лимит Telegram на payload — 128 байт
         msg = msg[:-1]; payload = "d:" + msg
